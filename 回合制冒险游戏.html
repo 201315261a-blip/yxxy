@@ -1,0 +1,2185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>回合制冒险游戏</title>
+<style>
+:root{
+  --bg:#1a1226; --bg2:#241a36; --card:#2a1f40; --card2:#33254d;
+  --gold:#d4af37; --gold2:#f0d77b; --text:#e8e2f0; --dim:#9a8fb8;
+  --red:#e05a5a; --green:#5ad48a; --blue:#5aa8e0; --purple:#a06ae0;
+  --orange:#e08a3a; --cyan:#7ec8e3;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:radial-gradient(1200px 800px at 50% -10%, #2c1e4a 0%, var(--bg) 60%);
+  color:var(--text); font-family:"PingFang SC","Microsoft YaHei","Noto Sans SC",sans-serif;
+  font-size:15px; line-height:1.5;
+}
+#app{max-width:880px;margin:0 auto;min-height:100vh;padding:12px}
+h1,h2,h3{font-weight:700}
+button{font-family:inherit;cursor:pointer;border:none;outline:none}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.btn{
+  display:inline-block;padding:10px 22px;border-radius:10px;font-size:15px;font-weight:600;
+  background:linear-gradient(180deg,#3a2c5c,#2a1f40);color:var(--text);border:1px solid #4a3a6e;
+  transition:transform .08s,filter .15s;text-align:center;
+}
+.btn:hover{filter:brightness(1.2)}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.4;cursor:not-allowed;filter:none}
+.btn-gold{background:linear-gradient(180deg,var(--gold2),var(--gold));color:#1a1226;border-color:var(--gold2);font-weight:700}
+.btn-red{background:linear-gradient(180deg,#a04040,#7a2a2a);border-color:#c06060}
+.btn-green{background:linear-gradient(180deg,#3a8a5a,#2a6a44);border-color:#5ab07a}
+.btn-blue{background:linear-gradient(180deg,#3a6a9a,#2a4a7a);border-color:#5a90c0}
+.btn-sm{padding:6px 12px;font-size:13px;border-radius:8px}
+.btn-lg{padding:14px 36px;font-size:18px;border-radius:14px}
+.panel{background:var(--card);border:1px solid #44356a;border-radius:14px;padding:16px;margin:10px 0}
+.panel-title{color:var(--gold);font-size:16px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.muted{color:var(--dim);font-size:13px}
+.gold{color:var(--gold2);font-weight:700}
+.bar{height:12px;background:#1a1226;border-radius:8px;overflow:hidden;position:relative;border:1px solid #3a2c5c}
+.bar>i{display:block;height:100%;border-radius:8px;transition:width .25s}
+.bar-hp>i{background:linear-gradient(90deg,#c05050,var(--red))}
+.bar-mp>i{background:linear-gradient(90deg,#3a6a9a,var(--blue))}
+.bar-sp>i{background:linear-gradient(90deg,#8a7a2a,var(--gold))}
+.bar-shield>i{background:linear-gradient(90deg,#4a8a9a,var(--cyan))}
+.bar-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;text-shadow:0 1px 2px #000;font-weight:700}
+.stat-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dashed #3a2c5c}
+.stat-row:last-child{border-bottom:none}
+.tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:12px;margin:2px;border:1px solid}
+.tag-gold{color:var(--gold2);border-color:var(--gold)}
+.tag-red{color:#ff9a9a;border-color:var(--red)}
+.tag-green{color:#9affc0;border-color:var(--green)}
+.tag-blue{color:#9ac8ff;border-color:var(--blue)}
+.tag-purple{color:#c89aff;border-color:var(--purple)}
+/* 主菜单 */
+.menu-wrap{text-align:center;padding:60px 16px 20px}
+.game-title{font-size:44px;color:var(--gold2);text-shadow:0 0 30px rgba(212,175,55,.45);letter-spacing:6px;margin-bottom:6px}
+.game-sub{color:var(--dim);margin-bottom:40px;letter-spacing:2px}
+.menu-btn{display:block;width:260px;margin:12px auto}
+/* 创建页 */
+.gen-form{max-width:640px;margin:0 auto}
+.field{margin:14px 0}
+.field>label{display:block;color:var(--gold);margin-bottom:6px;font-size:14px}
+.input{width:100%;padding:10px 14px;border-radius:10px;border:1px solid #4a3a6e;background:#1e1530;color:var(--text);font-size:15px}
+.input:focus{outline:2px solid var(--gold)}
+.seg{display:flex;gap:8px;flex-wrap:wrap}
+.seg-btn{flex:1;min-width:90px;padding:10px;border-radius:10px;background:var(--card2);border:1px solid #44356a;color:var(--text);font-size:14px;text-align:center}
+.seg-btn.sel{border-color:var(--gold);background:#3a2c5c;color:var(--gold2);box-shadow:0 0 8px rgba(212,175,55,.25)}
+.job-card{flex:1;min-width:130px;padding:12px;border-radius:12px;background:var(--card2);border:1px solid #44356a;text-align:center;cursor:pointer}
+.job-card.sel{border-color:var(--gold);background:#3a2c5c}
+.job-card .ji{font-size:30px}
+.job-card .jn{font-weight:700;margin:4px 0}
+.preview-box{background:#1e1530;border:1px solid #44356a;border-radius:10px;padding:12px;font-size:13px}
+.trait-line{padding:4px 0;color:#c8ffd0}
+/* 地图页 */
+.map-head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.map-wrap{position:relative;background:var(--bg2);border:1px solid #44356a;border-radius:14px;padding:10px 6px;overflow:hidden}
+.map-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.map-layer{position:relative;height:88px;display:flex;align-items:center;justify-content:center;gap:14px}
+.node{position:relative;width:56px;height:56px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px solid #4a3a6e;background:#241a36;font-size:20px;transition:transform .12s,box-shadow .12s;cursor:default}
+.node .nlabel{font-size:10px;color:var(--dim);margin-top:1px;white-space:nowrap}
+.node.reach{cursor:pointer;border-color:var(--gold);background:#3a2c5c;box-shadow:0 0 12px rgba(212,175,55,.5);animation:pulse 1.6s infinite}
+.node.reach:hover{transform:scale(1.12)}
+.node.done{opacity:.55;border-color:#3a6a44}
+.node.cur{border-color:var(--gold2);box-shadow:0 0 16px rgba(240,215,123,.7)}
+.node.boss{border-color:var(--red);background:#3a1a1a}
+@keyframes pulse{0%,100%{box-shadow:0 0 8px rgba(212,175,55,.4)}50%{box-shadow:0 0 18px rgba(212,175,55,.8)}}
+/* 战斗页 */
+.battle-enemy{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+.mon-card{width:150px;background:var(--card);border:1px solid #5a3a3a;border-radius:12px;padding:10px;text-align:center;position:relative}
+.mon-card .mname{font-weight:700;font-size:14px;color:#ffc8c8}
+.mon-card .micon{font-size:34px;line-height:1.2}
+.intent{background:#1e1530;border:1px solid #4a3a6e;border-radius:8px;padding:4px 6px;font-size:12px;margin-top:6px;color:#ffd27a;min-height:22px}
+.battle-log{background:#14101f;border:1px solid #3a2c5c;border-radius:10px;height:120px;overflow-y:auto;padding:8px 10px;font-size:13px;margin:10px 0}
+.battle-log .log-line{padding:1px 0;border-bottom:1px dashed #221a33}
+.battle-log .log-dmg{color:#ff9a9a}
+.battle-log .log-heal{color:#9affc0}
+.battle-log .log-info{color:var(--dim)}
+.battle-party{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.pc-card{width:180px;background:var(--card);border:1px solid #44356a;border-radius:12px;padding:8px 10px;position:relative;transition:box-shadow .15s}
+.pc-card.acting{border-color:var(--gold);box-shadow:0 0 12px rgba(212,175,55,.5)}
+.pc-card.dead{opacity:.5}
+.pc-card .pname{font-weight:700;font-size:14px;display:flex;justify-content:space-between;gap:4px}
+.pc-card .res-line{font-size:12px;color:var(--dim);margin-top:3px;display:flex;justify-content:space-between}
+.buff-row{font-size:11px;margin-top:3px;display:flex;gap:4px;flex-wrap:wrap;min-height:16px}
+.battle-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+.act-btn{padding:8px 14px;border-radius:10px;background:var(--card2);border:1px solid #4a3a6e;color:var(--text);font-size:13px;min-width:110px;text-align:left}
+.act-btn:hover:not(:disabled){border-color:var(--gold)}
+.act-btn:disabled{opacity:.45;cursor:not-allowed}
+.act-btn .an{font-weight:700}
+.act-btn .ad{font-size:11px;color:var(--dim)}
+.target-hint{text-align:center;color:var(--gold2);padding:6px;background:#1e1530;border:1px dashed var(--gold);border-radius:10px;margin-top:8px;font-size:14px}
+.tgt{outline:2px solid var(--gold);cursor:pointer}
+.tgt:hover{filter:brightness(1.3)}
+/* 商店/事件 */
+.shop-item{display:flex;align-items:center;gap:10px;padding:10px;background:var(--card2);border:1px solid #44356a;border-radius:10px;margin:8px 0;flex-wrap:wrap}
+.shop-item .si-info{flex:1;min-width:200px}
+.event-text{background:#1e1530;border-left:4px solid var(--purple);border-radius:8px;padding:14px;margin:12px 0;font-size:15px;line-height:1.8}
+/* 结算/通用 */
+.center{text-align:center}
+.flex{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.mt8{margin-top:8px}.mt16{margin-top:16px}.mt24{margin-top:24px}
+.chip{display:inline-block;background:var(--card2);border:1px solid #4a3a6e;border-radius:8px;padding:4px 10px;font-size:13px;margin:3px}
+.dead-tag{color:#ff9a9a;font-size:11px;font-weight:700}
+.reward-card{flex:1;min-width:220px;padding:14px;border-radius:12px;background:var(--card2);border:1px solid var(--gold);cursor:pointer;text-align:center}
+.reward-card:hover{filter:brightness(1.25)}
+.reward-card .rt{font-size:18px;font-weight:700;color:var(--gold2)}
+#toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#3a2c5c;border:1px solid var(--gold);color:var(--text);padding:10px 22px;border-radius:10px;z-index:99;display:none;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+.modal-mask{position:fixed;inset:0;background:rgba(10,6,18,.75);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal{background:var(--bg2);border:1px solid var(--gold);border-radius:14px;padding:20px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto}
+table.sim{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+table.sim th,table.sim td{border:1px solid #44356a;padding:4px 6px;text-align:center}
+table.sim th{background:#2a1f40;color:var(--gold)}
+.ok{color:#7dffab;font-weight:700}
+.bad{color:#ff7d7d;font-weight:700}
+@media (max-width:600px){
+  body{font-size:14px}
+  .game-title{font-size:32px}
+  .node{width:48px;height:48px;font-size:17px}
+  .map-layer{height:76px;gap:8px}
+  .mon-card{width:130px}
+  .pc-card{width:100%}
+  .battle-party .pc-card{width:48%}
+  .act-btn{min-width:96px;font-size:12px}
+  .job-card{min-width:110px}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+'use strict';
+/* ================= 0. 工具函数 ================= */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'"',"'":'&#39;'}[c])); }
+let _seed = null, _s = 0;
+function rng(){ if(_seed !== null){ _s = (_s * 1664525 + 1013904223) >>> 0; return _s / 4294967296; } return Math.random(); }
+function srand(seed){ _seed = (seed>>>0) || 1; _s = _seed; }
+function ri(a, b){ return a + Math.floor(rng() * (b - a + 1)); }
+function pick(arr){ return arr[Math.floor(rng() * arr.length)]; }
+function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+function round5(minPct, maxPct){ const steps = Math.floor(maxPct / 5); const k = Math.floor(rng() * (steps - Math.floor(minPct/5) + 1)) + Math.floor(minPct/5); return k * 5; }
+function toast(msg){ const t = $('#toast'); if(!t){ const d = document.createElement('div'); d.id='toast'; document.body.appendChild(d); } $('#toast').textContent = msg; $('#toast').style.display='block'; clearTimeout(toast._t); toast._t = setTimeout(()=>{ $('#toast').style.display='none'; }, 1600); }
+let _uid = 1;
+function uid(){ return 'u' + (_uid++); }
+
+/* ================= 1. 核心数值基准 ================= */
+const BASE = { hp: 110, atk: 12, def: 6 };
+const E = [1.00, 1.35, 1.80, 2.30, 2.90]; // 规格书 8.2：章节系数（终点 2.9 倍，勿改）
+const N_EFF = N => 1 + 0.85 * (N - 1);
+const SAVE_KEY = 'rpg_adventure_save_v1';
+const DIFF = {   // 规格书 2.2/4：难度只作用于玩家（简单 1.2 / 一般 1.0 / 困难 0.8）
+  easy:   { name: '简单', mul: 1.2, traitLv: 3 },
+  normal: { name: '一般', mul: 1.0, traitLv: 2 },
+  hard:   { name: '困难', mul: 0.8, traitLv: 0 }
+};
+const CHAPTER_NAMES = ['第一章·森林边境','第二章·荒芜石岭','第三章·幽暗沼泽','第四章·熔岩山脉','第五章·混沌深渊'];
+const PLAYER_GROWTH = [1.00, 1.40, 1.90, 2.50, 3.20]; // 8.1 玩家期望强度
+
+/* ================= 2. 职业表 ================= */
+const JOBS = {
+  warrior: {
+    name: '战士', icon: '⚔️', hp: 115, atk: 14, def: 6,
+    resName: '力量', resMax: 3, resRegen: 1, resIcon: '⚡',
+    desc: '近战输出，力量驱动轻重击',
+    traits: ['hp','atk','def','resMax','resRegen'],
+    skills: [
+      { id:'attack',  name:'普通攻击', icon:'🗡️', type:'atk',   target:'enemy', mult:1.0, cost:null, desc:'1.0倍攻击，不消耗资源' },
+      { id:'light',   name:'轻击',     icon:'⚡', type:'atk',   target:'enemy', mult:1.4, cost:{res:1}, desc:'消耗1力量，1.4倍攻击' },
+      { id:'heavy',   name:'重击',     icon:'💥', type:'atk',   target:'enemy', mult:2.6, cost:{res:3}, desc:'消耗3力量，2.6倍攻击' },
+      { id:'defend',  name:'防御',     icon:'🛡️', type:'defend', target:'self', mult:0, cost:null, desc:'本回合受到伤害减半' }
+    ]
+  },
+  mage: {
+    name: '法师', icon: '🔮', hp: 80, atk: 18, def: 3,
+    resName: '蓝量', resMax: 10, resRegen: 1, resIcon: '💧',
+    desc: '魔法输出，蓝量驱动法术',
+    traits: ['hp','atk','def','resMax','resRegen'],
+    skills: [
+      { id:'attack',   name:'普通攻击', icon:'🗡️', type:'atk',   target:'enemy', mult:1.0, cost:null, desc:'1.0倍攻击，不消耗资源' },
+      { id:'fireball', name:'火球',     icon:'🔥', type:'atk',   target:'enemy', mult:1.5, cost:{res:1}, desc:'消耗1蓝，1.5倍攻击' },
+      { id:'arcane',   name:'奥术冲击', icon:'✨', type:'atk',   target:'enemy', mult:2.8, cost:{res:5}, desc:'消耗5蓝，2.8倍攻击' },
+      { id:'meditate', name:'冥想',     icon:'🧘', type:'meditate', target:'self', mult:0, cost:null, gain:3, desc:'本回合不攻击，蓝量+3' },
+      { id:'defend',   name:'防御',     icon:'🛡️', type:'defend', target:'self', mult:0, cost:null, desc:'本回合受到伤害减半' }
+    ]
+  },
+  tank: {
+    name: '坦克', icon: '🛡️', hp: 160, atk: 9, def: 14,
+    resName: '护盾', resMax: 0.5, resRegen: 0.08, resIcon: '🔷',
+    desc: '坚盾防线，护盾反击嘲讽',
+    traits: ['hp','atk','def','shieldGen','shieldCap'],
+    skills: [
+      { id:'attack',  name:'普通攻击', icon:'🗡️', type:'atk',   target:'enemy', mult:1.0, cost:null, desc:'1.0倍攻击，不消耗资源' },
+      { id:'taunt',   name:'嘲讽',     icon:'📢', type:'taunt', target:'self', mult:0, cost:null, desc:'此后2个敌方回合，所有怪物强制攻击自己' },
+      { id:'counter', name:'反击',     icon:'💢', type:'counter', target:'enemy', mult:0, cost:null, desc:'消耗全部护盾，造成护盾×1.5固定伤害（无视防御）' },
+      { id:'defend',  name:'防御',     icon:'🛡️', type:'defend', target:'self', mult:0, cost:null, desc:'本回合受到伤害减半' }
+    ]
+  },
+  priest: {
+    name: '牧师', icon: '⛪', hp: 100, atk: 10, def: 5,
+    resName: '生命', resMax: 0, resRegen: 0, resIcon: '❤️',
+    desc: '神圣治疗，消耗自身血量施法',
+    traits: ['hp','atk','def','heal','healCost'],
+    skills: [
+      { id:'attack',    name:'普通攻击', icon:'🗡️', type:'atk',   target:'enemy', mult:1.0, cost:null, desc:'1.0倍攻击；溅射20%伤害治疗血量最低的队友' },
+      { id:'smallHeal', name:'小回复',   icon:'💚', type:'heal',   target:'ally',  mult:0.08, cost:{hpPct:0.04}, desc:'消耗自身4%最大血量，恢复目标8%最大血量' },
+      { id:'bigHeal',   name:'大回复',   icon:'💖', type:'heal',   target:'ally',  mult:0.20, cost:{hpPct:0.12}, desc:'消耗自身12%最大血量，恢复目标20%最大血量' },
+      { id:'defend',    name:'防御',     icon:'🛡️', type:'defend', target:'self', mult:0, cost:null, desc:'本回合受到伤害减半' }
+    ]
+  }
+};
+const JOB_KEYS = Object.keys(JOBS);
+
+/* ================= 3. 特性系统 ================= */
+const TRAIT_LEVELS = [
+  { lv:1, count:1, min:5,  max:20 },
+  { lv:2, count:1, min:5,  max:40 },
+  { lv:3, count:2, min:5,  max:30 },
+  { lv:4, count:2, min:5,  max:60 },
+  { lv:5, count:3, min:5,  max:50 }
+];
+const TRAIT_NAME = {
+  hp:'血量', atk:'攻击', def:'防御', resMax:'资源上限', resRegen:'资源回复',
+  shieldGen:'护盾生成', shieldCap:'护盾上限', heal:'治疗量', healCost:'治疗消耗'
+};
+const TRAIT_PREFIX = {
+  hp: ['钢铁之躯','生命之泉','坚韧体魄','不灭意志','旺盛生机'],
+  atk: ['嗜血狂徒','锋锐之刃','战意昂扬','雷霆之力','狂怒之心'],
+  def: ['磐石之盾','铜墙铁壁','不动如山','铁壁防御','坚毅壁垒'],
+  resMax: ['能量澎湃','源泉涌动','无尽之力','深不见底','浩瀚之海'],
+  resRegen: ['涌动之息','回气如风','再生之力','急速流转','生生不息'],
+  shieldGen: ['护盾精通','壁垒大师','坚盾之魂','守御之心','不动之墙'],
+  shieldCap: ['坚不可摧','堡垒之躯','无尽壁垒','钢铁之墙','厚实甲胄'],
+  heal: ['圣光眷顾','治愈之光','慈悲之心','生命祝福','神圣恩典'],
+  healCost: ['牺牲之悟','奉献之道','苦修者','圣洁牺牲','无私之心']
+};
+
+/* ================= 4. 商店表（价格为基础价，实际×E） ================= */
+const SHOP_ITEMS = [
+  { id:'potion', name:'生命药剂', icon:'🧪', price:50,  desc:'恢复一名角色50%最大血量', needTarget:'ally' },
+  { id:'weapon', name:'武器强化', icon:'⚔️', price:120, desc:'一名角色攻击+10%', needTarget:'ally' },
+  { id:'armor',  name:'护甲强化', icon:'🛡️', price:110, desc:'一名角色防御+10%', needTarget:'ally' },
+  { id:'life',   name:'生命强化', icon:'❤️', price:120, desc:'一名角色血量上限+10%', needTarget:'ally' },
+  { id:'res',    name:'资源强化', icon:'💎', price:90,  desc:'职业资源上限+2（坦克：护盾生成+2%最大血量）', needTarget:'ally' },
+  { id:'revive', name:'复活石',   icon:'💀', price:160, desc:'消耗品，战斗中复活一名阵亡角色至30%血', needTarget:null },
+  { id:'relic',  name:'圣物',     icon:'📿', price:130, desc:'牧师治疗量+15%（需队伍有牧师）', needTarget:'ally' }
+];
+
+/* ================= 5. 奇遇表（10种） ================= */
+const ENCOUNTERS = [
+  { id:'chest',  name:'神秘宝箱', icon:'🎁', desc:'一个落满灰尘的宝箱。打开它？', options:[
+    { label:'打开宝箱', run:()=>{ if(rng()<0.5){ const g=Math.round(60*E[game.chapter-1]); game.gold+=g; return '宝箱里满是金币！获得 '+g+' 金币。'; } else { const pct=10; game.party.forEach(p=>{ if(p.hp>0){ p.hp=Math.max(1, Math.round(p.hp*(1-pct/100))); } }); return '宝箱突然爆开，毒气弥漫！全队损失 10% 当前血量。'; } } },
+    { label:'离开', run:()=> '你决定不碰这个来路不明的箱子，转身离开。' }
+  ]},
+  { id:'merchant', name:'流浪商人', icon:'🧙', desc:'一位流浪商人拦住了你，声称愿意低价出售一些好东西（3件半价商品，仅此一次）。', options:[
+    { label:'看看货', run:()=>{ startWanderingShop(); return null; } },
+    { label:'离开', run:()=> '商人耸耸肩，继续赶路。' }
+  ]},
+  { id:'altar', name:'古神祭坛', icon:'🗿', desc:'一座古老的祭坛散发着不祥的气息。献祭一名角色20%最大血量上限，换取其攻击+20%。', options:[
+    { label:'献祭', run:()=> null, needTarget:'sacrifice' },
+    { label:'离开', run:()=> '你不敢惊动这古老的存在，悄悄离开。' }
+  ]},
+  { id:'dice', name:'赌徒之骰', icon:'🎲', desc:'一个自称赌圣的矮人邀你掷骰子：押上当前章节×50 金币，赢则翻倍，输则全失。', options:[
+    { label:'押注', run:()=>{ const bet=Math.round(50*E[game.chapter-1]); if(game.gold<bet) return '你囊中羞涩，押不起注。'; game.gold-=bet; if(rng()<0.5){ game.gold+=bet*2; return '骰子落定，你赢了！获得 '+bet*2+' 金币。'; } return '骰子落定，你输了 ' +bet+ ' 金币。'; } },
+    { label:'离开', run:()=> '你不赌，矮人悻悻离去。' }
+  ]},
+  { id:'spring', name:'智慧之泉', icon:'⛲', desc:'一汪清澈的泉水泛着微光。饮用后，一名角色的职业资源上限+3。', options:[
+    { label:'饮用', run:()=> null, needTarget:'spring' },
+    { label:'离开', run:()=> '你保持警惕，没有饮用未知的泉水。' }
+  ]},
+  { id:'totem', name:'诅咒图腾', icon:'🪬', desc:'一根刻满符文的图腾。触碰它：全队攻击-5%，全队血量上限+15%（不可逆）。', options:[
+    { label:'触碰图腾', run:()=>{ game.party.forEach(p=>{ p.growth.atk *= 0.95; p.growth.hp *= 1.15; }); return '图腾之力涌入体内：全队攻击-5%，血量上限+15%。'; } },
+    { label:'离开', run:()=> '你绕过图腾，继续前行。' }
+  ]},
+  { id:'fairy', name:'精灵祝福', icon:'🧚', desc:'一只发光的精灵环绕着你飞舞，洒下治愈的光辉。', options:[
+    { label:'接受祝福', run:()=>{ game.party.forEach(p=>{ p.hp=p.maxHp(); p.defend=false; p.curse=0; p.burn=0; p.tauntT=0; }); return '全队恢复满血，所有减益被清除！'; } },
+    { label:'婉拒', run:()=> '精灵轻盈地飞走了。' }
+  ]},
+  { id:'veteran', name:'老兵教导', icon:'🎖️', desc:'一位独臂老兵愿意指点你的武艺：一名角色攻击+8%、防御+8%。', options:[
+    { label:'请教', run:()=> null, needTarget:'veteran' },
+    { label:'离开', run:()=> '老兵目送你离去，眼神深邃。' }
+  ]},
+  { id:'camp', name:'废弃营地', icon:'🏕️', desc:'一处废弃的营地，还留着没烧完的篝火和物资。', options:[
+    { label:'搜刮营地', run:()=>{ game.party.forEach(p=>{ if(p.hp>0) p.hp=Math.min(p.maxHp(), p.hp + Math.round(p.maxHp()*0.25)); }); const g=Math.round(20*E[game.chapter-1]); game.gold+=g; return '全队恢复25%最大血量，并找到 '+g+' 金币。'; } },
+    { label:'离开', run:()=> '你只是路过。' }
+  ]},
+  { id:'fate', name:'命运重掷', icon:'🔁', desc:'一面古镜映出你灵魂中的印记。选择一名角色，重掷其一条特性（同等级）。', options:[
+    { label:'重掷', run:()=> null, needTarget:'fate' },
+    { label:'离开', run:()=> '你拂去镜上的尘土，转身离开。' }
+  ]}
+];
+
+/* ================= 6. Boss 表 ================= */
+const BOSSES = [
+  { ch:1, name:'黏液王',   icon:'🟢', desc:'森林深处的巨型史莱姆，体液腐蚀一切。', mechanic:'血量降至50%时分裂出2只小黏液（各15%自身血量与攻击，计入总量不额外加）' },
+  { ch:2, name:'岩甲魔像', icon:'🗿', desc:'由山岩与符文铸成的魔像，坚不可摧。', mechanic:'每3回合获得20%最大血量的护盾；重击1.8倍' },
+  { ch:3, name:'暗影女巫', icon:'🧙‍♀️', desc:'操控暗影与诅咒的女巫，以鲜血为食。', mechanic:'诅咒（目标2回合攻击-40%）；吸血（造成伤害的50%回血）' },
+  { ch:4, name:'熔岩巨龙', icon:'🐉', desc:'盘踞在熔岩山脉顶端的远古巨龙。', mechanic:'每3回合群体攻击（总伤害60%分摊全队）；灼烧（目标3回合每回合掉3%×E最大血量）' },
+  { ch:5, name:'混沌领主', icon:'👹', desc:'混沌的化身，企图吞噬整个世界。', mechanic:'三阶段：>66%强化攻击（每2回合+10%）；66%~33%召唤2只精英级随从；<33%每2回合群攻' }
+];
+
+/* ================= 7. 节点类型 ================= */
+const NODE_TYPES = {
+  battle: { name:'战斗', icon:'⚔️', cls:'#e05a5a' },
+  elite:  { name:'精英', icon:'💀', cls:'#e08a3a' },
+  shop:   { name:'商店', icon:'🏪', cls:'#d4af37' },
+  event:  { name:'奇遇', icon:'❓', cls:'#a06ae0' },
+  rest:   { name:'休息', icon:'🔥', cls:'#5ad48a' },
+  boss:   { name:'Boss', icon:'👹', cls:'#e04040' }
+};
+const NODE_TYPE_KEYS = Object.keys(NODE_TYPES);
+/* ================= 8. 角色模型与属性结算（规格2.2，顺序不可交换） ================= */
+function traitSum(c, key){ return (c.traits||[]).filter(t=>t.key===key).reduce((s,t)=>s+t.pct,0); }
+function maxHp(c){
+  const b = JOBS[c.job].hp;
+  return Math.max(1, Math.floor(b * c.diffMul * (c.gender==='male'?1.1:1) * (1+traitSum(c,'hp')/100) * (c.growth.hp||1)));
+}
+function atkOf(c){
+  let m = c.diffMul * (1+traitSum(c,'atk')/100) * (c.growth.atk||1);
+  if(c.status.curse) m *= 0.6;   // 诅咒：攻击-40%
+  if(c.status.weak)  m *= 0.7;   // 虚弱：下一场战斗攻击-30%
+  return Math.max(1, Math.floor(JOBS[c.job].atk * m));
+}
+function defOf(c){ return Math.max(1, Math.floor(JOBS[c.job].def * c.diffMul * (1+traitSum(c,'def')/100) * (c.growth.def||1))); }
+function resMax(c){
+  const j = JOBS[c.job];
+  if(c.job==='tank') return Math.max(1, Math.ceil(maxHp(c)*0.5*(1+traitSum(c,'shieldCap')/100)));
+  return Math.max(1, Math.ceil(j.resMax * c.diffMul * (c.gender==='female'?1.1:1) * (1+traitSum(c,'resMax')/100) * (c.growth.resMax||1))) + (c.bonusRes||0);
+}
+function resRegen(c){
+  const j = JOBS[c.job];
+  if(c.job==='tank'){
+    return maxHp(c)*0.08*(1+traitSum(c,'shieldGen')/100)*(c.growth.shieldGen||1)*(c.gender==='female'?1.1:1) + maxHp(c)*(c.bonusShieldGen||0)/100;
+  }
+  return Math.max(1, Math.ceil(j.resRegen*(1+traitSum(c,'resRegen')/100)*(c.growth.resRegen||1)));
+}
+function healMul(c){ return (1+traitSum(c,'heal')/100)*(c.growth.heal||1)*(c.gender==='female'?1.1:1); }
+function healAmt(c, tgt, pct){ return Math.max(1, Math.round(maxHp(tgt)*pct*healMul(c))); }
+function healCostAmt(c, pct){ return Math.max(1, Math.round(maxHp(c)*pct*(1-traitSum(c,'healCost')/100))); }
+function mitOf(def){ return Math.min(def/(def+50), 0.65); }
+function charStats(c){ return { hp:maxHp(c), atk:atkOf(c), def:defOf(c), resMax:resMax(c), resRegen:resRegen(c) }; }
+
+/* ================= 9. 特性生成（3.1/3.2/3.3） ================= */
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+function genTraits(lv, job){
+  const cfg = TRAIT_LEVELS[lv-1];
+  const pool = shuffle([...JOBS[job].traits]).slice(0, cfg.count);
+  return pool.map(key => ({ key, pct: round5(cfg.min, cfg.max), prefix: pick(TRAIT_PREFIX[key]), lv }));
+}
+function traitLabel(t){ return t.prefix+'（'+TRAIT_NAME[t.key]+'+'+t.pct+'%）'; }
+function makeChar({name, gender, job, diffMul, traitLv, eMul}){
+  const c = {
+    id: uid(), name, gender, job, diffMul: diffMul*(eMul||1),
+    traits: [],
+    growth: { hp:1, atk:1, def:1, resMax:1, resRegen:1, shieldGen:1, shieldCap:1, heal:1, healCost:1 },
+    bonusRes: 0, bonusShieldGen: 0,
+    hp: 0, res: 0, shield: 0, status: {}, alive: true
+  };
+  if(traitLv>0) c.traits = genTraits(traitLv, job);
+  c.hp = maxHp(c);
+  if(c.job==='tank') c.shield = 0; else c.res = resMax(c);
+  return c;
+}
+
+/* ================= 10. 怪物名称池 ================= */
+const MONSTER_POOL = {
+  1:['史莱姆','野狼','毒蘑菇','树精'],
+  2:['石傀儡','蜥蜴人','岩蛇','秃鹫'],
+  3:['暗影蝙蝠','沼泽怨灵','剧毒蛙','食尸藤'],
+  4:['熔岩小鬼','火蜥蜴','灰烬魔','烈焰蛛'],
+  5:['混沌魔','深渊之眼','虚空兽','扭曲仆从']
+};
+
+/* ================= 11. 地图生成（5.1/5.2） ================= */
+function mapConnected(layers){
+  const byId = {};
+  layers.forEach(arr=>arr.forEach(n=>byId[n.id]=n));
+  const seen = new Set(layers[0].map(n=>n.id));
+  const st = [...layers[0].map(n=>n.id)];
+  while(st.length){
+    const id = st.pop();
+    byId[id].edges.forEach(e=>{ if(!seen.has(e)){ seen.add(e); st.push(e); } });
+  }
+  return layers[11].every(n=>seen.has(n.id));
+}
+function assignTypes(layers){
+  // 固定层：第1层战斗 / 第11层休息 / 第12层Boss / 第6~8层中随机一层全商店
+  layers[0].forEach(n=>n.type='battle');
+  layers[10].forEach(n=>n.type='rest');
+  layers[11][0].type = 'boss';
+  const shopL = ri(5,7);
+  layers[shopL].forEach(n=>n.type='shop');
+  // 精英：层5~10（索引4~9）随机两层各1只，避开全商店层，且不占满整层
+  const elLayers = shuffle([4,5,6,7,8,9].filter(L=>L!==shopL)).slice(0,2);
+  for(const L of elLayers){
+    const pool = layers[L].filter(n=>n.type==='battle');
+    if(!pool.length) return false;
+    pick(pool).type = 'elite';
+  }
+  // 额外商店（不得与全商店层同层）
+  const shopPool = [].concat(...layers.slice(1,10)).filter(n=>n.type==='battle');
+  if(!shopPool.length) return false;
+  pick(shopPool).type = 'shop';
+  // 奇遇5 + 休息2，其余全部战斗
+  const evPool = shuffle([].concat(...layers.slice(1,10)).filter(n=>n.type==='battle'));
+  if(evPool.length < 7) return false;
+  for(let i=0;i<5;i++) evPool[i].type = 'event';
+  for(let i=5;i<7;i++) evPool[i].type = 'rest';
+  // 同层反差校验：任意 size≥2 的层至少 2 种类型（全商店层、固定战斗层/休息层除外）
+  for(let L=1;L<10;L++){
+    if(L===shopL) continue;
+    const types = new Set(layers[L].map(n=>n.type));
+    if(layers[L].length>=2 && types.size<2) return false;
+  }
+  return true;
+}
+function genMap(ch){
+  for(let att=0; att<80; att++){
+    const layers = [], nodeById = {}, all = [];
+    const sizes = [3];
+    for(let L=2;L<=11;L++) sizes.push(ri(2,3));
+    sizes.push(1);
+    for(let L=0;L<12;L++){
+      const arr = [];
+      for(let i=0;i<sizes[L];i++){
+        const nd = { id:'n'+L+'_'+i, layer:L, idx:i, type:'battle', edges:[] };
+        arr.push(nd); all.push(nd); nodeById[nd.id] = nd;
+      }
+      layers.push(arr);
+    }
+    // 连边（自上而下，不交叉：上层节点 i 的目标 index 单调不减）
+    for(let L=0;L<11;L++){
+      const up = layers[L], dn = layers[L+1], U = up.length, D = dn.length;
+      const base = [];
+      for(let i=0;i<U;i++) base.push(Math.min(D-1, Math.floor((i+0.5)*D/U)));
+      for(let i=0;i<U;i++){
+        up[i].edges.push(dn[base[i]].id);
+        if(D>1 && rng()<0.55 && base[i]+1<D) up[i].edges.push(dn[base[i]+1].id);
+      }
+      for(let d=0;d<D;d++){
+        if(up.some(u=>u.edges.includes(dn[d].id))) continue;
+        let best=0, bd=1e9;
+        for(let i=0;i<U;i++){ const dist=Math.abs(base[i]-d); if(dist<bd){ bd=dist; best=i; } }
+        up[best].edges.push(dn[d].id);
+      }
+      up.forEach(u=>{ u.edges = [...new Set(u.edges)]; });
+    }
+    if(!mapConnected(layers)) continue;   // 连通性校验
+    if(!assignTypes(layers)) continue;    // 类型分配与约束
+    return { layers, nodeById, all };
+  }
+  return null;
+}
+/* ================= 12. UI 核心 ================= */
+const UI = { modal:null, create:{ name:'', gender:'male', job:'warrior', diff:'normal', rerolls:3, char:null } };
+const SCREENS = {};
+const ACT = {};
+let screen = 'menu';
+function view(html){ $('#app').innerHTML = html; }
+document.addEventListener('click', e=>{
+  const b = e.target.closest('[data-act]');
+  if(!b) return;
+  ACT._ev = e;
+  handle(b.dataset.act, b.dataset.arg);
+});
+document.addEventListener('input', e=>{
+  const b = e.target.closest('[data-in]');
+  if(!b) return;
+  const f = ACT['in_'+b.dataset.in];
+  if(f) f(b.value, b);
+});
+function handle(act, arg){ const f = ACT[act]; if(f) f(arg); }
+function go(s){ screen = s; render(); }
+function render(){
+  const f = SCREENS[screen];
+  if(f) view(f());
+  if(UI.modal) appendModal();
+  if(screen==='map') layoutMap();
+}
+function appendModal(){
+  const d = document.createElement('div');
+  d.id = 'modal-box';
+  d.innerHTML = UI.modal;
+  $('#app').appendChild(d);
+}
+function closeModal(){ UI.modal = null; render(); }
+ACT.modal_close = () => {
+  const e = ACT._ev;
+  if(e && !e.target.classList.contains('modal-mask') && e.target.tagName!=='BUTTON') return;
+  closeModal();
+};
+
+/* ================= 13. 主菜单 ================= */
+SCREENS.menu = () => {
+  const save = loadGameRaw();
+  let verBad = false;
+  try{ const raw = localStorage[SAVE_KEY]; if(raw && !save) verBad = true; }catch(e){}
+  const cont = save ? `<button class="btn btn-gold menu-btn" data-act="menu_continue">继续游戏<span class="muted" style="display:block;font-size:12px">${CHAPTER_NAMES[save.chapter-1]} · 第${save.layer+1}层 · ${save.party.map(p=>esc(p.name)+'('+JOBS[p.job].name+')').join('、')}</span></button>` : '';
+  const verTip = verBad ? `<div class="panel" style="max-width:420px;margin:12px auto">
+    <div class="muted">⚠️ 检测到旧版本存档（当前仅支持版本 1），无法继续，请清档后重新开始。</div>
+    <button class="btn btn-sm btn-red mt8" data-act="clearSave">清档重开</button>
+  </div>` : '';
+  return `<div class="menu-wrap">
+    <div class="game-title">回合制冒险</div>
+    <div class="game-sub">—— 四人小队 · 五章爬塔远征 ——</div>
+    <button class="btn btn-gold menu-btn" data-act="menu_new">开始新游戏</button>
+    ${cont}
+    ${verTip}
+    <button class="btn menu-btn" data-act="menu_sim">平衡自检（simulate）</button>
+    <div class="muted mt24">深色奇幻 · 单文件离线 · 自动存档<br>战士 / 法师 / 坦克 / 牧师 · 意图预告 · 一键重复</div>
+  </div>`;
+};
+ACT.clearSave = () => { clearSave(); toast('存档已清除'); go('menu'); };
+ACT.menu_new = () => {
+  UI.create = { name:'', gender:'male', job:'warrior', diff:'normal', rerolls:3, char:null };
+  go('create');
+};
+ACT.menu_continue = () => {
+  if(!loadGame()){ toast('没有可用的存档'); return; }
+  go('map');
+};
+ACT.menu_sim = () => {
+  const r = runSelfCheck();
+  UI.modal = simModal(r);
+  render();
+};
+
+/* ================= 14. 角色创建（4） ================= */
+function buildCreateChar(){
+  const st = UI.create;
+  const d = DIFF[st.diff];
+  if(d.traitLv>0 && !st.traits) st.traits = genTraits(d.traitLv, st.job);
+  if(d.traitLv===0) st.traits = [];
+  const c = makeChar({ name: st.name||'冒险者', gender: st.gender, job: st.job, diffMul: d.mul, traitLv: 0 });
+  c.traits = st.traits;
+  c.hp = maxHp(c);
+  if(c.job==='tank') c.shield = 0; else c.res = resMax(c);
+  return c;
+}
+function statPreview(c){
+  const s = charStats(c);
+  const j = JOBS[c.job];
+  return `<div class="stat-row"><span>血量</span><span class="gold">${s.hp}</span></div>
+<div class="stat-row"><span>攻击</span><span class="gold">${s.atk}</span></div>
+<div class="stat-row"><span>防御</span><span class="gold">${s.def}</span></div>
+${c.job==='tank'
+  ? `<div class="stat-row"><span>护盾上限 / 每回合生成</span><span class="gold">${Math.round(s.resMax)} / ${s.resRegen.toFixed(1)}</span></div>`
+  : `<div class="stat-row"><span>${j.resName}上限 / 每回合回复</span><span class="gold">${s.resMax} / ${s.resRegen}</span></div>`}`;
+}
+SCREENS.create = () => {
+  const st = UI.create;
+  const d = DIFF[st.diff];
+  const c = st.char || buildCreateChar();
+  const genderOpts = [['male','男 ♂（血量+10%）'],['female','女 ♀（职业资源+10%）']]
+    .map(([v,l])=>`<button class="seg-btn ${st.gender===v?'sel':''}" data-act="setGender" data-arg="${v}">${l}</button>`).join('');
+  const jobOpts = JOB_KEYS.map(k=>{
+    const jj = JOBS[k];
+    return `<div class="job-card ${st.job===k?'sel':''}" data-act="setJob" data-arg="${k}" role="button" tabindex="0">
+      <div class="ji">${jj.icon}</div><div class="jn">${jj.name}</div><div class="muted" style="font-size:11px">${jj.desc}</div>
+    </div>`;
+  }).join('');
+  const diffOpts = Object.keys(DIFF).map(k=>`<button class="seg-btn ${st.diff===k?'sel':''}" data-act="setDiff" data-arg="${k}">${DIFF[k].name}</button>`).join('');
+  const traitHtml = c.traits.length
+    ? c.traits.map(t=>`<div class="trait-line">✦ ${esc(traitLabel(t))}</div>`).join('')
+    : '<div class="muted">困难难度：无特性</div>';
+  const rerollBtn = d.traitLv>0 ? `<button class="btn btn-sm" data-act="reroll" ${st.rerolls<=0?'disabled':''}>重掷特性（剩 ${st.rerolls} 次）</button>` : '';
+  return `<div class="gen-form">
+  <div class="flex"><button class="btn btn-sm" data-act="toMenu">← 返回</button></div>
+  <h2 style="text-align:center;color:var(--gold2)">创建角色</h2>
+  <div class="field"><label>姓名</label><input class="input" maxlength="8" placeholder="输入角色名" value="${esc(st.name)}" data-in="name"></div>
+  <div class="field"><label>性别</label><div class="seg">${genderOpts}</div></div>
+  <div class="field"><label>职业</label><div class="seg">${jobOpts}</div></div>
+  <div class="field"><label>难度（仅影响玩家属性，怪物走固定曲线）</label><div class="seg">${diffOpts}</div></div>
+  <div class="field"><label>特性（3.4：简单3级 / 一般2级 / 困难无）${rerollBtn}</label><div class="preview-box">${traitHtml}</div></div>
+  <div class="field"><label>最终属性预览（2.2 完整结算）</label><div class="preview-box" id="pv">${statPreview(c)}</div></div>
+  <div class="center mt16"><button class="btn btn-gold btn-lg" data-act="start">开始冒险</button></div>
+</div>`;
+};
+ACT.setGender = a => { UI.create.gender = a; UI.create.char = buildCreateChar(); render(); };
+ACT.setJob = a => { UI.create.job = a; UI.create.traits = null; UI.create.char = buildCreateChar(); render(); };
+ACT.setDiff = a => { UI.create.diff = a; UI.create.traits = null; UI.create.char = buildCreateChar(); render(); };
+ACT.reroll = () => {
+  const st = UI.create;
+  if(st.rerolls<=0 || DIFF[st.diff].traitLv<=0) return;
+  st.traits = genTraits(DIFF[st.diff].traitLv, st.job);
+  st.char = buildCreateChar();
+  st.rerolls--;
+  render();
+};
+ACT.in_name = v => {
+  UI.create.name = v;
+  UI.create.char = buildCreateChar();
+  const pv = document.getElementById('pv');
+  if(pv) pv.innerHTML = statPreview(UI.create.char);
+};
+ACT.start = () => {
+  const st = UI.create;
+  const name = st.name.trim();
+  if(!name){ toast('请填写姓名'); return; }
+  const c = buildCreateChar();
+  c.name = name;
+  newGame();
+  game.difficulty = st.diff;
+  game.party = [c];
+  game.mapSeed = (Date.now()>>>0) || 1;
+  srand(game.mapSeed);
+  game.map = genMap(1);
+  game.currentNodeId = null;
+  game.prevNodeId = null;
+  game.visited = {};
+  game.shopStock = rollShop(1);
+  game.inventory = [];
+  game.stats = { kills:0, turns:0, time:0 };
+  game._t0 = Date.now();
+  saveGame();
+  go('map');
+};
+ACT.toMenu = () => { saveGame(); go('menu'); };
+
+/* ================= 15. 地图页（5 / 11） ================= */
+function reachableIds(){
+  const g = game;
+  if(!g.currentNodeId) return g.map.layers[0].map(n=>n.id);
+  return g.map.nodeById[g.currentNodeId].edges;
+}
+function layerLabel(i){ return i===11 ? 'Boss' : '第'+(i+1)+'层'; }
+SCREENS.map = () => {
+  const g = game;
+  const cur = g.currentNodeId ? g.map.nodeById[g.currentNodeId] : null;
+  const reach = new Set(reachableIds());
+  const rows = g.map.layers.map((arr, L)=>{
+    const nodes = arr.map(n=>{
+      const nt = NODE_TYPES[n.type];
+      let cls = 'node';
+      if(reach.has(n.id) && !g.visited[n.id]) cls += ' reach';
+      if(g.visited[n.id] && n.id!==g.currentNodeId) cls += ' done';
+      if(n.id===g.currentNodeId) cls += ' cur';
+      if(n.type==='boss') cls += ' boss';
+      const label = n.type==='boss' ? 'Boss' : n.type==='elite' ? '精英' : n.type==='battle' ? '战斗' : n.type==='shop' ? '商店' : n.type==='rest' ? '休息' : '奇遇';
+      return `<div class="${cls}" data-act="enterNode" data-arg="${n.id}" role="button" tabindex="0" title="${label}">
+        <span style="font-size:20px">${nt.icon}</span><span class="nlabel">${label}</span>
+      </div>`;
+    }).join('');
+    return `<div class="map-layer" data-layer="${L}">${nodes}</div>`;
+  }).join('');
+  const partyRow = g.party.map(c=>{
+    const pct = Math.max(0, Math.round(c.hp/maxHp(c)*100));
+    return `<span class="chip">${JOBS[c.job].icon} ${esc(c.name)} <span class="gold">${c.hp}/${maxHp(c)}</span></span>`;
+  }).join('');
+  return `<div class="map-head">
+    <h3 style="color:var(--gold2)">${CHAPTER_NAMES[g.chapter-1]}</h3>
+    <span class="chip">💰 ${g.gold} 金币</span>
+    <span class="chip">👥 ${g.party.length} 人</span>
+  </div>
+  <div class="map-head">
+    <div class="flex" style="gap:6px">${partyRow}</div>
+    <div class="flex">
+      <button class="btn btn-sm" data-act="openParty">队伍排序</button>
+      <button class="btn btn-sm" data-act="saveNow">存档</button>
+      <button class="btn btn-sm" data-act="toMenu">主菜单</button>
+    </div>
+  </div>
+  <div class="map-wrap" id="mapWrap">
+    <svg class="map-svg" id="mapSvg"></svg>
+    ${rows}
+  </div>
+  <div class="muted center mt8">金色高亮为可达节点；整章地图开局全可见，请规划路线（第11层必为休息）</div>`;
+};
+ACT.enterNode = a => {
+  const g = game;
+  const nd = g.map.nodeById[a];
+  if(!nd) return;
+  if(g.visited[nd.id] && nd.id!==g.currentNodeId){ toast('该节点已探索过'); return; }
+  const cur = g.currentNodeId ? g.map.nodeById[g.currentNodeId] : null;
+  if(cur){ if(!cur.edges.includes(nd.id)){ toast('只能前往可达节点'); return; } }
+  else if(nd.layer!==0){ return; }
+  g.prevNodeId = g.currentNodeId;
+  g.currentNodeId = nd.id;
+  g.layer = nd.layer;
+  if(nd.type==='battle' || nd.type==='elite' || nd.type==='boss'){
+    startBattle(g.chapter, nd.type);
+  } else if(nd.type==='shop'){
+    UI.shop = { stock: [...g.shopStock], wandering:false };
+    UI.shopTarget = null;
+    go('shop');
+  } else if(nd.type==='rest'){
+    UI.restTarget = null;
+    go('rest');
+  } else if(nd.type==='event'){
+    UI.event = { enc: pick(ENCOUNTERS), msg: null, targetOpt: null };
+    go('event');
+  }
+};
+function layoutMap(){
+  const wrap = document.getElementById('mapWrap');
+  const svg = document.getElementById('mapSvg');
+  if(!wrap || !svg) return;
+  const wr = wrap.getBoundingClientRect();
+  svg.setAttribute('viewBox', `0 0 ${wr.width} ${wr.height}`);
+  let lines = '';
+  const pos = {};
+  $$('#mapWrap .map-layer').forEach(row=>{
+    $$('.node', row).forEach(n=>{
+      const r = n.getBoundingClientRect();
+      pos[n.dataset.arg] = { x: r.left - wr.left + r.width/2, y: r.top - wr.top + r.height/2 };
+    });
+  });
+  game.map.all.forEach(n=>{
+    n.edges.forEach(tid=>{
+      const p = pos[n.id], q = pos[tid];
+      if(!p || !q) return;
+      const cur = game.currentNodeId===n.id;
+      lines += `<line x1="${p.x}" y1="${p.y}" x2="${q.x}" y2="${q.y}" stroke="${cur?'#d4af37':'#4a3a6e'}" stroke-width="${cur?2.5:1}" stroke-opacity="${cur?0.95:0.6}"/>`;
+    });
+  });
+  svg.innerHTML = lines;
+}
+ACT.openParty = () => {
+  if(!game) return;
+  UI.modal = partyModal();
+  render();
+};
+function partyModal(){
+  const g = game;
+  const rows = g.party.map((c,i)=>`<div class="flex" style="justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed #3a2c5c">
+    <span>${JOBS[c.job].icon} ${esc(c.name)}（${JOBS[c.job].name}）</span>
+    <span>
+      <button class="btn btn-sm" data-act="partyMove" data-arg="${i}|${i-1}" ${i===0?'disabled':''}>↑</button>
+      <button class="btn btn-sm" data-act="partyMove" data-arg="${i}|${i+1}" ${i===g.party.length-1?'disabled':''}>↓</button>
+    </span>
+  </div>`).join('');
+  return `<div class="modal-mask" data-act="modal_close"><div class="modal">
+    <h3>队伍调整（战斗内行动顺序）</h3>
+    ${rows || '<div class="muted">队伍为空</div>'}
+    <div class="center mt16"><button class="btn btn-gold" data-act="modal_close">完成</button></div>
+  </div></div>`;
+}
+ACT.partyMove = a => {
+  const [i,j] = a.split('|').map(Number);
+  const p = game.party;
+  if(!p[i] || j<0 || j>=p.length) return;
+  [p[i],p[j]] = [p[j],p[i]];
+  saveGame();
+  UI.modal = partyModal();
+  render();
+};
+ACT.saveNow = () => { saveGame(); toast('已存档'); };
+/* ================= 16. 全局状态与存档（10） ================= */
+let game = null;
+function newGame(){
+  game = {
+    version:1, difficulty:'normal', chapter:1, layer:0,
+    currentNodeId:null, prevNodeId:null, gold:0,
+    party:[], mapSeed:0, map:null, visited:{},
+    shopStock:[], inventory:[], stats:{kills:0,turns:0,time:0}, _t0:Date.now()
+  };
+}
+function saveGame(){
+  if(!game) return;
+  const g = Object.assign({}, game);
+  g.stats = Object.assign({}, game.stats, { time: game.stats.time + (Date.now()-(game._t0||Date.now()))/1000 });
+  delete g._t0;
+  try{ localStorage[SAVE_KEY] = JSON.stringify(g); }catch(e){}
+}
+function loadGameRaw(){
+  try{
+    const s = localStorage[SAVE_KEY];
+    if(!s) return null;
+    const g = JSON.parse(s);
+    return (g && g.version===1) ? g : null;
+  }catch(e){ return null; }
+}
+function loadGame(){
+  const g = loadGameRaw();
+  if(!g) return false;
+  game = g;
+  game._t0 = Date.now();
+  return true;
+}
+function clearSave(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
+
+/* ================= 17. 怪物生成（7.1~7.4，只读人数与章节） ================= */
+function makeMonsterGroup(ch, type, n){
+  const N = n || game.party.length;
+  const P = 12 * N_EFF(N) * E[ch-1];                       // 7.1 整场战斗总量
+  const hpEff  = { battle:2.5, elite:5.0, boss:8.0 }[type] * P;   // 规格书 7.1：标准2.5P / 精英5.0P / Boss8.0P（整场总量）
+  const dmgTar = { battle:0.45, elite:0.50, boss:0.55 }[type] * P; // 规格书 7.1：0.45P / 0.50P / 0.55P（过防后期望）
+  const def = { battle:2, elite:6, boss:8 }[type] * E[ch-1];       // 规格书 7.2：defMon = 2/6/8 × E
+  const mit = Math.min(def/(def+50), 0.65);
+  const hpShown = Math.round(hpEff * (1-mit));             // 7.2 有效血量→显示血量
+  const refDef = 6*E[ch-1], refMit = refDef/(refDef+50);
+  const atkTotal = dmgTar / (1-refMit);                    // 7.3 期望伤害→攻击力
+  const newMon = (name, icon, mhp, atk, extra) => Object.assign({
+    id:uid(), name, icon, maxHp:mhp, hp:mhp, def, atk,
+    shield:0, turn:0, intent:null, intent2:null, buffs:{}, elite:false, boss:false, bossCh:0
+  }, extra||{});
+  const mons = [];
+  if(type==='battle'){   // 7.4 标准战：均分（±15%浮动，总和守恒）
+    const count = ch===1 ? ri(1,2) : ri(2,3);
+    let atkRem = atkTotal, hpRem = hpShown;
+    for(let i=0;i<count;i++){
+      const last = i===count-1;
+      let a = last ? atkRem : atkTotal/count * (0.85+rng()*0.3);
+      let h = last ? hpRem : hpShown/count * (0.85+rng()*0.3);
+      if(!last){ a = Math.max(1, Math.round(a)); h = Math.max(1, Math.round(h)); atkRem -= a; hpRem -= h; }
+      else { a = Math.max(1, Math.round(atkRem)); h = Math.max(1, Math.round(hpRem)); }
+      mons.push(newMon(pick(MONSTER_POOL[ch]), '👾', h, a));
+    }
+  } else if(type==='elite'){  // 7.4 精英：1只 + 30%最大血量护盾
+    const m = newMon('精英·'+pick(MONSTER_POOL[ch]), '💀', hpShown, atkTotal, { elite:true });
+    m.shield = Math.round(m.maxHp*0.3);
+    mons.push(m);
+  } else {  // 7.4 Boss：1只，每回合行动2次，每次伤害=atkTotal/2
+    const b = BOSSES[ch-1];
+    mons.push(newMon(b.name, b.icon, hpShown, atkTotal/2, { boss:true, bossCh:ch, split:false, summoned:false, pendingSummon:false }));
+  }
+  return mons;
+}
+/* ================= 18. 战斗系统（6：伤害/回合流程/AI/意图预告/一键重复） ================= */
+let battle = null;
+function battleLog(html){
+  battle.log.push(html);
+  if(battle.log.length>20) battle.log.splice(0, battle.log.length-20);
+}
+function firstAliveMonster(){ return battle.monsters.find(m=>m.hp>0); }
+function dmgToChar(c, raw){            // 6.1 怪物→角色（2.3 防御 = 本回合受伤 ×0.5）
+  const mit = mitOf(defOf(c));
+  let d = raw * (1 - mit);
+  if(c.status.defend) d *= 0.5;
+  return Math.max(1, Math.floor(d));
+}
+function dmgToMonster(mon, raw){       // 6.1 角色→怪物（同公式）
+  return Math.max(1, Math.floor(raw * (1-mitOf(mon.def))));
+}
+function hitChar(c, d){                // 护盾优先扣，再扣血
+  if(c.shield>0){ const s = Math.min(c.shield, d); c.shield -= s; d -= s; }
+  if(d>0) c.hp = Math.max(0, c.hp - d);
+  if(c.hp<=0){ c.hp=0; c.alive=false; c.status.defend=false; battleLog(`<span class="log-dmg">${c.name}倒下了！</span>`); }
+}
+function pickTarget(mon){              // 6.3 怪物AI：嘲讽强制→加权随机(血最低×2，牧师×1.5)
+  const alive = battle.party.filter(c=>c.alive);
+  if(!alive.length) return null;
+  const taunts = alive.filter(c=>c.status.tauntT>0);
+  if(taunts.length) return taunts[0].id;
+  let minPct = 1e9;
+  alive.forEach(c=>minPct = Math.min(minPct, c.hp/maxHp(c)));
+  const ws = alive.map(c=>{
+    let w = (c.hp/maxHp(c) <= minPct+1e-9) ? 2 : 1;
+    if(c.job==='priest') w *= 1.5;
+    return w;
+  });
+  const total = ws.reduce((s,w)=>s+w,0);
+  let r = rng()*total;
+  for(let i=0;i<alive.length;i++){ r -= ws[i]; if(r<=0) return alive[i].id; }
+  return alive[alive.length-1].id;
+}
+function hurtMonster(mon, d){
+  if(mon.shield>0){ const s = Math.min(mon.shield, d); mon.shield -= s; d -= s; }
+  if(d>0) mon.hp = Math.max(0, mon.hp - d);
+  if(mon.hp<=0){ mon.intent=null; mon.intent2=null; battleLog(`<span class="log-dmg">${mon.name}被击败了！</span>`); }
+  afterMonsterHurt(mon);
+}
+function afterMonsterHurt(mon){        // 9.1 被动触发：黏液王分裂 / 混沌领主召唤预告
+  if(mon.bossCh===1 && !mon.split && mon.hp<=mon.maxHp/2){
+    mon.split = true;
+    const s = [1,2].map(()=>({ id:uid(), name:'小黏液', icon:'🟢',
+      maxHp:Math.max(1,Math.round(mon.maxHp*0.15)), hp:Math.max(1,Math.round(mon.maxHp*0.15)),
+      def:mon.def, atk:Math.max(1,Math.round(mon.atk*0.15)), shield:0, turn:0,
+      intent:null, intent2:null, buffs:{}, elite:false, boss:false, bossCh:0 }));
+    battle.monsters.push(...s);
+    battleLog('<span class="log-info">黏液王血量跌破50%，分裂出2只小黏液（各15%）！</span>');
+  }
+  if(mon.bossCh===5 && !mon.summoned && mon.hp<=mon.maxHp*0.66){
+    mon.summoned = true;
+    mon.pendingSummon = true;   // 下回合意图预告"召唤"
+  }
+}
+function summonMinions(mon){           // 9.1 混沌领主：召唤2只精英级随从
+  const s = [1,2].map(()=>({ id:uid(), name:'混沌爪牙', icon:'😈',
+    maxHp:Math.max(1,Math.round(mon.maxHp*0.15)), hp:Math.max(1,Math.round(mon.maxHp*0.15)),
+    def:mon.def, atk:Math.max(1,Math.round(mon.atk*0.8)), shield:0, turn:0,
+    intent:null, intent2:null, buffs:{}, elite:true, boss:false, bossCh:0 }));  // elite:true = 精英级行为
+  battle.monsters.push(...s);
+  battleLog('<span class="log-info">混沌领主召唤出2只混沌爪牙！</span>');
+}
+function intentDmg(mon, mult, tid){    // 意图预告的精确伤害（6.4：100%准确）
+  const c = battle.party.find(x=>x.id===tid);
+  if(!c) return 0;
+  return dmgToChar(c, mon.atk * mult * (mon.buffs.atkMul||1));
+}
+function aoeIntent(raw){               // 群攻：记录原始伤害与目标，展示/执行时按当前状态实时结算（玩家防御可减伤）
+  const alive = battle.party.filter(c=>c.alive);
+  return { type:'aoe', raw, targets: alive.map(c=>c.id) };
+}
+function genMonIntent(mon){            // 7.6 标准怪/精英怪行为
+  mon.turn++;
+  if(mon.boss) return genBossIntent(mon);
+  if(mon.elite){                       // 精英：普攻/重击/每3回合补15%护盾
+    if(mon.turn%3===0) return { type:'shield', amount: Math.round(mon.maxHp*0.15), label:'补盾' };
+    const heavy = rng()<0.5;
+    const tid = pickTarget(mon);
+    return { type: heavy?'heavy':'atk', mult: heavy?1.6:1.0, targetId:tid, dmg:intentDmg(mon, heavy?1.6:1.0, tid), label: heavy?'重击':'攻击' };
+  }
+  if(mon.turn%3===0){                  // 标准怪：每第3回合重击1.6×
+    const tid = pickTarget(mon);
+    return { type:'heavy', mult:1.6, targetId:tid, dmg:intentDmg(mon,1.6,tid), label:'重击' };
+  }
+  const tid = pickTarget(mon);
+  return { type:'atk', mult:1.0, targetId:tid, dmg:intentDmg(mon,1.0,tid), label:'攻击' };
+}
+function genBossIntent(mon){           // 9.1 五大Boss专属机制（只改伤害分布，不破总量）
+  const ch = mon.bossCh;
+  const I = () => { const tid = pickTarget(mon); return { type:'atk', mult:1.0, targetId:tid, dmg:intentDmg(mon,1.0,tid), label:'攻击' }; };
+  const atkTotal2 = mon.atk * 2;       // mon.atk = atkTotal/2
+  switch(ch){
+    case 1: { // 黏液王：普攻×2（分裂被动见 afterMonsterHurt）
+      const a = I(), b = I(); return { type:'double', a, b }; }
+    case 2: { // 岩甲魔像：每3回合护盾20% + 重击1.8×
+      if(mon.turn%3===0){
+        const a = { type:'shield', amount: Math.round(mon.maxHp*0.2), label:'护盾' };
+        const tid = pickTarget(mon);
+        const b = { type:'heavy', mult:1.8, targetId:tid, dmg:intentDmg(mon,1.8,tid), label:'重击' };
+        return { type:'double', a, b };
+      }
+      const a = I(), b = I(); return { type:'double', a, b }; }
+    case 3: { // 暗影女巫：普攻(吸血50%被动) + 诅咒0.6×
+      const a = I();
+      const tid = pickTarget(mon);
+      const b = { type:'curse', mult:0.6, targetId:tid, dmg:intentDmg(mon,0.6,tid), label:'诅咒' };
+      return { type:'double', a, b }; }
+    case 4: { // 熔岩巨龙：每3回合群攻60%+单体40%；普攻附灼烧
+      if(mon.turn%3===0){
+        const a = aoeIntent(atkTotal2*0.6);
+        const tid = pickTarget(mon);
+        const b = { type:'atk', mult:0.8, targetId:tid, dmg:intentDmg(mon,0.8,tid), burn:true, label:'攻击' };
+        return { type:'double', a, b };
+      }
+      const a = I(); a.burn = true;
+      const b = I(); b.burn = true;
+      return { type:'double', a, b }; }
+    case 5: { // 混沌领主：三阶段
+      const pct = mon.hp / mon.maxHp;
+      if(mon.pendingSummon){           // 66%~33%：召唤2只精英级随从
+        mon.pendingSummon = false;
+        const a = { type:'summon', label:'召唤', sub: summonMinions };
+        const b = I();
+        return { type:'double', a, b };
+      }
+      if(pct>0.66){                    // >66%：每2回合强化攻击+10%
+        if(mon.turn%2===0){ const a = { type:'buff', label:'强化' }; const b = I(); return { type:'double', a, b }; }
+        const a = I(), b = I(); return { type:'double', a, b };
+      }
+      if(pct<=0.33){                   // <33%：每2回合群攻60%+单体40%
+        if(mon.turn%2===0){
+          const a = aoeIntent(atkTotal2*0.6);
+          const tid = pickTarget(mon);
+          const b = { type:'atk', mult:0.8, targetId:tid, dmg:intentDmg(mon,0.8,tid), label:'攻击' };
+          return { type:'double', a, b };
+        }
+        const a = I(), b = I(); return { type:'double', a, b };
+      }
+      const a = I(), b = I(); return { type:'double', a, b };
+    }
+  }
+  return { type:'double', a: I(), b: I() };
+}
+function genAllIntents(){
+  battle.monsters.forEach(m=>{
+    if(m.hp<=0){ m.intent=null; m.intent2=null; return; }
+    const it = genMonIntent(m);
+    if(it.type==='double'){ m.intent = it.a; m.intent2 = it.b; }
+    else { m.intent = it; m.intent2 = null; }
+  });
+}
+function regen(c){                     // 6.2 资源回复（每回合）
+  if(c.job==='tank') c.shield = Math.min(resMax(c), c.shield + resRegen(c));
+  else if(c.job!=='priest') c.res = Math.min(resMax(c), c.res + resRegen(c));
+}
+function nextActor(){
+  const p = battle.party;
+  while(battle.actingIdx < p.length){
+    const c = p[battle.actingIdx];
+    if(c.alive) return c;
+    battle.actingIdx++;
+  }
+  return null;
+}
+function currentActor(){ return battle.actorId ? battle.party.find(c=>c.id===battle.actorId && c.alive) : null; }
+function startBattle(ch, type){
+  game.party.forEach(c=>{ c.alive = c.hp>0; c.status.defend = false; });
+  battle = {
+    chapter:ch, type, turn:1, phase:'player', actingIdx:0, actorId:null,
+    party: game.party, monsters: makeMonsterGroup(ch, type),
+    log:[], actions:[], lastActions:[], over:false, victory:false
+  };
+  genAllIntents();                     // 战斗开始即生成意图预告
+  const nx = nextActor();
+  battle.actorId = nx ? nx.id : null;
+  battleLog(`<span class="log-info">⚔️ ${NODE_TYPES[type].name}战开始！（回合1）</span>`);
+  go('battle');
+}
+function startPlayerTurn(){            // 6.2 我方回合：灼烧→资源回复→按序行动
+  battle.turn++;
+  battle.lastActions = battle.actions.filter(a=>a && a.skillId);
+  battle.actions = [];
+  battle.phase = 'player';
+  battle.party.forEach(c=>{
+    if(c.alive && c.status.burn>0){
+      const d = Math.max(1, Math.round(maxHp(c) * 0.03 * E[battle.chapter-1]));  // 9.1灼烧：3%×E×最大血量
+      c.hp = Math.max(0, c.hp - d);
+      battleLog(`<span class="log-dmg">${c.name}受到灼烧伤害 ${d}</span>`);
+      if(c.hp<=0){ c.hp=0; c.alive=false; battleLog(`<span class="log-dmg">${c.name}倒下了！</span>`); }
+      c.status.burn--;
+    }
+  });
+  checkBattleEnd();
+  if(battle.over){ render(); return; }
+  battle.party.forEach(c=>{ if(c.alive) regen(c); });
+  battle.actingIdx = 0;
+  const nx = nextActor();
+  battle.actorId = nx ? nx.id : null;
+  battleLog(`<span class="log-info">——回合 ${battle.turn} ——</span>`);
+}
+function enemyTurn(){                  // 6.2 敌方回合：按预告意图执行
+  battle.phase = 'enemy';
+  battle.actorId = null;
+  battle.monsters.filter(m=>m.hp>0).forEach(m=>{
+    if(m.intent) execIntent(m, m.intent);
+    if(m.hp>0 && m.intent2) execIntent(m, m.intent2);
+  });
+  checkBattleEnd();
+  if(battle.over){ render(); return; }
+  battle.party.forEach(c=>{            // 结算减益回合数、清除防御
+    c.status.defend = false;
+    if(c.status.curse>0) c.status.curse--;
+    if(c.status.tauntT>0) c.status.tauntT--;
+  });
+  genAllIntents();                     // 刷新下回合意图（预告永远领先一步）
+  startPlayerTurn();
+  render();
+}
+function execIntent(mon, it){
+  if(!it) return;
+  if(it.type==='double'){ execIntent(mon, it.a); execIntent(mon, it.b); return; }
+  const atkMul = mon.buffs.atkMul || 1;
+  switch(it.type){
+    case 'atk': case 'heavy': {
+      let c = battle.party.find(x=>x.id===it.targetId && x.alive);
+      if(!c) c = battle.party.find(x=>x.id===pickTarget(mon));   // 预告目标死亡时按AI重选（保底，pickTarget返回id）
+      if(!c) break;                     // 全员阵亡：跳过该次行动（战斗即将结束）
+      const d = dmgToChar(c, mon.atk * it.mult * atkMul);
+      hitChar(c, d);
+      battleLog(`<span class="log-dmg">${mon.name} ${it.label||'攻击'} ${c.name}，造成 ${d}伤害</span>`);
+      if(mon.bossCh===3){              // 暗影女巫：吸血50%
+        const h = Math.max(1, Math.round(d*0.5));
+        mon.hp = Math.min(mon.maxHp, mon.hp + h);
+        battleLog(`<span class="log-heal">${mon.name}吸血恢复 ${h}点</span>`);
+      }
+      if(mon.bossCh===4 && it.burn){   // 熔岩巨龙：灼烧3回合
+        c.status.burn = 3;
+        battleLog(`<span class="log-info">${c.name}被灼烧了（3回合）</span>`);
+      }
+      break;
+    }
+    case 'curse': {
+      let c = battle.party.find(x=>x.id===it.targetId && x.alive);
+      if(!c) c = battle.party.find(x=>x.id===pickTarget(mon));
+      if(!c) break;                     // 全员阵亡：跳过该次行动
+      const d = dmgToChar(c, mon.atk * it.mult * atkMul);
+      hitChar(c, d);
+      c.status.curse = 2;              // 诅咒：2回合攻击-40%
+      battleLog(`<span class="log-dmg">${mon.name}诅咒 ${c.name}，造成 ${d}伤害（攻击-40%×2回合）</span>`);
+      if(mon.bossCh===3){ const h = Math.max(1, Math.round(d*0.5)); mon.hp = Math.min(mon.maxHp, mon.hp + h); }
+      break;
+    }
+    case 'aoe': {
+      it.targets.forEach(id=>{
+        const c = battle.party.find(x=>x.id===id && x.alive);
+        if(c) hitChar(c, dmgToChar(c, it.raw));
+      });
+      battleLog(`<span class="log-dmg">${mon.name}发动群体攻击！</span>`);
+      break;
+    }
+    case 'shield':
+      mon.shield += it.amount;
+      battleLog(`<span class="log-info">${mon.name}获得 ${it.amount}点护盾</span>`);
+      break;
+    case 'buff':
+      mon.buffs.atkMul = (mon.buffs.atkMul||1) * 1.1;
+      battleLog(`<span class="log-info">${mon.name}强化自身攻击 +10%</span>`);
+      break;
+    case 'heal':                        // 6.4 意图类型之一：怪物治疗（当前无怪使用，数据层齐备）
+      const h = Math.max(1, Math.round(it.amount||0));
+      mon.hp = Math.min(mon.maxHp, mon.hp + h);
+      battleLog(`<span class="log-heal">${mon.name}${it.label||'治疗'}，恢复 ${h}点</span>`);
+      break;
+    case 'summon':
+      if(it.sub) it.sub(mon);
+      break;
+  }
+}
+function skillDisabledReason(c, sk){
+  if(!c.alive) return '已阵亡';
+  if((sk.type==='atk' || sk.type==='counter') && !battle.monsters.some(m=>m.hp>0)) return '没有敌人';
+  if(sk.cost){
+    if(sk.cost.res!==undefined && c.res < sk.cost.res) return '资源不足';
+    if(sk.cost.hpPct!==undefined){
+      const cost = healCostAmt(c, sk.cost.hpPct);
+      if(c.hp <= cost) return '血量不足（需保留1血）';
+    }
+  }
+  if(sk.id==='counter' && c.shield<=0) return '没有护盾';
+  return null;
+}
+function executeSkill(c, sk, tid){     // 2.3/2.4 职业动作执行
+  const j = JOBS[c.job];
+  if(sk.cost && sk.cost.res !== undefined) c.res = Math.max(0, c.res - sk.cost.res);  // 2.4 先扣资源（战士力量/法师蓝量），防止无限重击/奥术
+  switch(sk.type){
+    case 'atk': {
+      let mon = battle.monsters.find(m=>m.id===tid && m.hp>0) || firstAliveMonster();
+      if(!mon){ battleLog(`<span class="log-info">${c.name}挥了个空</span>`); return; }
+      const d = dmgToMonster(mon, atkOf(c) * sk.mult);
+      hurtMonster(mon, d);
+      battleLog(`<span class="log-dmg">${c.name}使用【${sk.name}】攻击 ${mon.name}，造成 ${d}伤害</span>`);
+      if(c.job==='priest'){            // 2.4 牧师：治疗溅射（伤害20%→血%最低队友）
+        const splash = Math.max(1, Math.round(d*0.2));
+        const alive = battle.party.filter(x=>x.alive && x.hp<maxHp(x));
+        if(alive.length){
+          let tgt = alive[0], mp = 1e9;
+          alive.forEach(x=>{ const p = x.hp/maxHp(x); if(p<mp){ mp=p; tgt=x; } });
+          tgt.hp = Math.min(maxHp(tgt), tgt.hp + splash);
+          battleLog(`<span class="log-heal">${c.name}溅射治疗恢复 ${tgt.name} ${splash}点</span>`);
+        }
+      }
+      break;
+    }
+    case 'defend':
+      c.status.defend = true;
+      battleLog(`<span class="log-info">${c.name}进入防御姿态（本回合受伤减半）</span>`);
+      break;
+    case 'taunt':
+      c.status.tauntT = 2;             // 此后2个敌方回合强制攻击自己
+      battleLog(`<span class="log-info">${c.name}发出嘲讽！此后2个敌方回合怪物强制攻击自己</span>`);
+      break;
+    case 'counter': {
+      const d = Math.floor(c.shield * 1.5);   // 2.4 反击：固定伤害，无视防御
+      c.shield = 0;
+      const mon = battle.monsters.find(m=>m.id===tid && m.hp>0) || firstAliveMonster();
+      if(mon){ hurtMonster(mon, d); battleLog(`<span class="log-dmg">${c.name}反击 ${mon.name}，造成 ${d}固定伤害</span>`); }
+      break;
+    }
+    case 'meditate': {
+      const gain = sk.gain || 3;
+      c.res = Math.min(resMax(c), c.res + gain);
+      battleLog(`<span class="log-heal">${c.name}冥想，恢复 ${gain}点${j.resName}</span>`);
+      break;
+    }
+    case 'heal': {
+      const tgt = battle.party.find(x=>x.id===tid && x.alive) || c;
+      const cost = healCostAmt(c, sk.cost.hpPct);
+      c.hp = Math.max(1, c.hp - cost);         // 牧师自损血量，最低保留1血
+      const amt = healAmt(c, tgt, sk.mult);
+      tgt.hp = Math.min(maxHp(tgt), tgt.hp + amt);
+      battleLog(`<span class="log-heal">${c.name}施放【${sk.name}】，消耗${cost}血，恢复 ${tgt.name} ${amt}点生命</span>`);
+      break;
+    }
+  }
+}
+function doAction(skillId, tid){
+  const c = currentActor();
+  if(!c || battle.over || battle.phase!=='player') return;
+  const sk = JOBS[c.job].skills.find(s=>s.id===skillId);
+  if(!sk) return;
+  if(skillDisabledReason(c, sk)){ toast('无法执行该动作'); return; }
+  battle.actions.push({ actorId:c.id, skillId, targetId: tid || null });
+  executeSkill(c, sk, tid);
+  checkBattleEnd();
+  if(battle.over){ render(); return; }
+  battle.actingIdx++;
+  const nx = nextActor();
+  battle.actorId = nx ? nx.id : null;
+  if(!nx){ enemyTurn(); }
+  render();
+}
+function skipTurn(){
+  const c = currentActor();
+  if(!c || battle.over || battle.phase!=='player') return;
+  battle.actions.push({ actorId:c.id, skillId:null, targetId:null });
+  battleLog(`<span class="log-info">${c.name}跳过了本回合</span>`);
+  battle.actingIdx++;
+  const nx = nextActor();
+  battle.actorId = nx ? nx.id : null;
+  if(!nx){ enemyTurn(); }
+  render();
+}
+function repeatLast(){                 // 6.5 一键重复：资源不足/目标已死→自动普攻
+  if(!battle || battle.over || battle.phase!=='player') return;
+  const acts = battle.lastActions.filter(a=>a && a.skillId);
+  if(!acts.length){ toast('上一回合没有可重复的动作'); return; }
+  let done = 0;
+  for(const a of acts){
+    const c = battle.party.find(x=>x.id===a.actorId);
+    if(!c || !c.alive) continue;
+    let sk = JOBS[c.job].skills.find(s=>s.id===a.skillId);
+    if(!sk) continue;
+    let tid = a.targetId;
+    let fallback = false;
+    if(skillDisabledReason(c, sk)) fallback = true;
+    else if(sk.type==='heal'){
+      const t = battle.party.find(x=>x.id===tid && x.alive && x.hp<maxHp(x));
+      if(!t) fallback = true;
+    } else if(sk.type==='atk' || sk.type==='counter'){
+      const m = battle.monsters.find(x=>x.id===tid && x.hp>0);
+      if(!m){ tid = firstAliveMonster() ? firstAliveMonster().id : null; }
+    }
+    if(fallback){
+      sk = JOBS[c.job].skills.find(s=>s.id==='attack');
+      tid = firstAliveMonster() ? firstAliveMonster().id : null;
+      if(!sk || skillDisabledReason(c, sk)) continue;
+    }
+    if(!tid && sk.type==='atk'){ tid = firstAliveMonster() ? firstAliveMonster().id : null; if(!tid) continue; }
+    executeSkill(c, sk, tid);
+    done++;
+  }
+  if(!done){ toast('没有可执行的动作'); return; }
+  checkBattleEnd();
+  if(battle.over){ render(); return; }
+  enemyTurn();
+  render();
+}
+function checkBattleEnd(){
+  const aliveMons = battle.monsters.some(m=>m.hp>0);
+  const aliveChars = battle.party.some(c=>c.alive);
+  if(!aliveChars){ battle.over = true; battle.victory = false; return; }
+  if(!aliveMons){ battle.over = true; battle.victory = true; }
+}
+function endBattle(){                  // 8.8 阵亡/失败规则
+  const g = game;
+  if(battle.victory){
+    const gold = Math.round({ battle:15, elite:40, boss:100 }[battle.type] * E[battle.chapter-1]);  // 8.3
+    g.gold += gold;
+    g.stats.turns += battle.turn;
+    g.stats.kills += battle.monsters.filter(m=>m.hp<=0).length;
+    toast(`战斗胜利！+${gold}金币`);
+    g.party.forEach(c=>{ c.status.weak = false; });   // 8.8 虚弱只影响下一场战斗，战斗结束即清除
+    g.party.forEach(c=>{               // 阵亡者1血复活+虚弱（下一场攻击-30%）
+      if(!c.alive){ c.hp = 1; c.alive = true; c.status.weak = true; }
+      c.status.defend = false; c.status.burn = 0; c.status.curse = 0; c.status.tauntT = 0;
+      c.hp = Math.min(maxHp(c), c.hp);
+    });
+    g.visited[g.currentNodeId] = true;
+    saveGame();
+    if(battle.type==='boss'){
+      if(g.chapter<5){ UI.reward = { mode:'boss' }; go('reward'); }
+      else { go('victory'); }
+    } else if(battle.type==='elite'){
+      UI.reward = { mode:'elite' }; go('reward');
+    } else { go('map'); }
+  } else {
+    g.gold = Math.floor(g.gold * 0.7); // 全灭：退回上一节点，损失30%金币
+    g.currentNodeId = g.prevNodeId;
+    g.party.forEach(c=>{
+      c.hp = Math.max(1, Math.round(maxHp(c)*0.5));
+      c.alive = true; c.status = {};
+    });
+    toast('全队阵亡…损失30%金币，退回上一节点');
+    saveGame();
+    go('map');
+  }
+}
+/* ================= 19. 战斗页 UI（11） ================= */
+function intentItem(it){
+  if(it.type==='atk' || it.type==='heavy'){
+    const c = battle.party.find(x=>x.id===it.targetId);
+    const nm = c ? esc(c.name) : '?';
+    return `${it.type==='heavy'?'💥':'🗡️'} ${nm} <span class="gold">${it.dmg}</span>${it.burn?' 🔥':''}`;
+  }
+  if(it.type==='curse'){
+    const c = battle.party.find(x=>x.id===it.targetId);
+    const nm = c ? esc(c.name) : '?';
+    return `🕯️ ${nm} <span class="gold">${it.dmg}</span> 诅咒`;
+  }
+  if(it.type==='aoe') return `🌪️ 全体 <span class="gold">${it.targets.map(id=>{ const c=battle.party.find(x=>x.id===id); return c?dmgToChar(c, it.raw):0; }).join('/')}</span>`;
+  if(it.type==='heal') return `💚 ${it.label||'治疗'}${it.amount?` <span class="gold">+${it.amount}</span>`:''}`;
+  if(it.type==='shield') return `🛡️ +${it.amount} 护盾`;
+  if(it.type==='buff') return '📈 强化攻击';
+  if(it.type==='summon') return `👥 ${it.label||'召唤'}`;
+  return '❔';
+}
+function intentHtml(mon){
+  const items = [];
+  if(mon.intent) items.push(intentItem(mon.intent));
+  if(mon.intent2) items.push(intentItem(mon.intent2));
+  return items.length ? items.join('<br>') : '<span class="muted">—</span>';
+}
+function skillBtns(c){
+  const j = JOBS[c.job];
+  return j.skills.map(sk=>{
+    const reason = skillDisabledReason(c, sk);
+    const cost = sk.cost ? (sk.cost.res!==undefined ? `耗${sk.cost.res}${j.resName}` : `耗${sk.cost.hpPct*100}%血`) : '';
+    let dmg = '';
+    if(sk.type==='atk'){
+      const m = firstAliveMonster();
+      if(m) dmg = `预计 ${dmgToMonster(m, atkOf(c)*sk.mult)}`;
+    } else if(sk.id==='counter' && c.shield>0){
+      dmg = `预计 ${Math.floor(c.shield*1.5)}`;
+    } else if(sk.type==='heal'){
+      dmg = `恢复 ${healAmt(c, c, sk.mult)}`;
+    }
+    return `<button class="act-btn" data-act="skill" data-arg="${sk.id}" ${reason?'disabled':''} title="${esc(reason||'')}">
+      <span class="an">${sk.icon} ${sk.name}</span><br><span class="ad">${esc(cost)} ${esc(dmg)}${reason?' · '+esc(reason):''}</span>
+    </button>`;
+  }).join('');
+}
+function reviveBtn(){
+  const has = game.inventory.some(i=>i.id==='revive');
+  const dead = battle.party.some(c=>!c.alive);
+  if(!has || !dead) return '';
+  return `<button class="btn btn-sm btn-gold" data-act="useRevive">💀复活石×${game.inventory.filter(i=>i.id==='revive').length}</button>`;
+}
+SCREENS.battle = () => {
+  const b = battle;
+  const tm = UI.target;
+  const enTgt = tm && tm.mode==='enemy';
+  const alTgt = tm && tm.mode==='ally';
+  const enHtml = b.monsters.filter(m=>m.hp>0).map(m=>{
+    const hpPct = Math.max(0, Math.round(m.hp/m.maxHp*100));
+    const shPct = m.maxHp>0 ? Math.min(100, Math.round(m.shield/m.maxHp*100)) : 0;
+    const buff = (m.buffs.atkMul||1)>1 ? `<span class="tag tag-red">强化 ${Math.round(((m.buffs.atkMul||1)-1)*100)}%</span>` : '';
+    return `<div class="mon-card ${enTgt?'tgt':''}" ${enTgt?`data-act="battleTarget" data-arg="${m.id}"`:''}>
+      <div class="micon">${m.icon}</div>
+      <div class="mname">${esc(m.name)}</div>
+      <div class="bar bar-hp" style="height:10px;margin:4px 0"><i style="width:${hpPct}%"></i><span class="bar-text">${m.hp}/${m.maxHp}</span></div>
+      ${m.shield>0?`<div class="bar bar-shield" style="height:8px;margin:2px 0"><i style="width:${shPct}%"></i><span class="bar-text">盾 ${Math.round(m.shield)}</span></div>`:''}
+      <div class="buff-row">${buff}</div>
+      <div class="intent">${intentHtml(m)}</div>
+    </div>`;
+  }).join('');
+  const partyHtml = b.party.map(c=>{
+    const mh = maxHp(c);
+    const hpPct = Math.max(0, Math.round(c.hp/mh*100));
+    const j = JOBS[c.job];
+    const resBar = c.job==='tank'
+      ? `<div class="bar bar-shield" style="height:8px;margin:3px 0"><i style="width:${Math.min(100,Math.round(c.shield/resMax(c)*100))}%"></i><span class="bar-text">盾 ${Math.round(c.shield)}/${Math.round(resMax(c))}</span></div>`
+      : `<div class="res-line"><span>${j.resIcon} ${j.resName}</span><span>${Math.round(c.res)}/${Math.round(resMax(c))}</span></div>`;
+    const sts = [];
+    if(c.status.defend) sts.push(['防御','tag-blue']);
+    if(c.status.curse>0) sts.push([`诅咒${c.status.curse}`,'tag-purple']);
+    if(c.status.burn>0) sts.push([`灼烧${c.status.burn}`,'tag-red']);
+    if(c.status.tauntT>0) sts.push([`嘲讽${c.status.tauntT}`,'tag-gold']);
+    if(c.status.weak) sts.push(['虚弱','tag-red']);
+    const okTgt = alTgt && ((tm.skill==='revive' && !c.alive) || (tm.skill!=='revive' && c.alive));
+    return `<div class="pc-card ${c.alive?'':'dead'} ${b.actorId===c.id?'acting':''} ${okTgt?'tgt':''}" ${okTgt?`data-act="battleTarget" data-arg="${c.id}"`:''}>
+      <div class="pname"><span>${j.icon} ${esc(c.name)}</span>${c.alive?'':`<span class="dead-tag">阵亡</span>`}</div>
+      <div class="bar bar-hp" style="height:10px;margin:3px 0"><i style="width:${hpPct}%"></i><span class="bar-text">${c.hp}/${mh}</span></div>
+      ${resBar}
+      <div class="buff-row">${sts.map(s=>`<span class="tag ${s[1]}">${s[0]}</span>`).join('')}</div>
+    </div>`;
+  }).join('');
+  const logHtml = b.log.map(l=>`<div class="log-line">${l}</div>`).join('');
+  let bottom = '';
+  if(b.over){
+    bottom = b.victory
+      ? `<div class="center mt16"><div class="gold" style="font-size:20px">🎉 战斗胜利！</div><div class="muted">金币已结算</div><button class="btn btn-gold mt8" data-act="battleEnd">继续</button></div>`
+      : `<div class="center mt16"><div style="color:#ff9a9a;font-size:20px">💀 全队阵亡…</div><div class="muted">退回上一节点，损失30%金币</div><button class="btn btn-gold mt8" data-act="battleEnd">返回地图</button></div>`;
+  } else if(tm){
+    bottom = `<div class="target-hint">请选择${tm.mode==='enemy'?'目标怪物':'目标角色'}${tm.skill==='revive'?'（复活石，不占行动）':''}</div>`;
+  } else {
+    const actor = currentActor();
+    if(actor){
+      bottom = `<div class="center" style="margin-top:6px"><span class="chip" style="border-color:var(--gold)">当前行动：${JOBS[actor.job].icon} ${esc(actor.name)}</span></div>
+        <div class="battle-actions">${skillBtns(actor)}</div>
+        <div class="flex mt8">
+          <button class="btn btn-sm" data-act="repeatLast">🔁 重复上回合</button>
+          <button class="btn btn-sm" data-act="skipTurn">跳过</button>
+          ${reviveBtn()}
+        </div>`;
+    }
+  }
+  return `<div class="flex" style="justify-content:space-between"><h3 style="color:var(--gold2)">⚔️ ${NODE_TYPES[b.type].name}战</h3><span class="chip">第 ${b.turn} 回合</span></div>
+    <div class="battle-enemy mt8">${enHtml}</div>
+    <div class="battle-log">${logHtml}</div>
+    <div class="battle-party">${partyHtml}</div>
+    ${bottom}`;
+};
+ACT.skill = a => {
+  const c = currentActor();
+  if(!c || !battle || battle.over || battle.phase!=='player') return;
+  const sk = JOBS[c.job].skills.find(s=>s.id===a);
+  if(!sk) return;
+  const reason = skillDisabledReason(c, sk);
+  if(reason){ toast(reason); return; }
+  if(sk.target==='enemy'){ UI.target = { skill:a, mode:'enemy' }; }
+  else if(sk.target==='ally'){ UI.target = { skill:a, mode:'ally' }; }
+  else { doAction(a, null); return; }
+  render();
+};
+ACT.battleTarget = id => {
+  if(!UI.target) return;
+  const { skill: skId, mode } = UI.target;
+  UI.target = null;
+  if(skId==='revive'){
+    const idx = game.inventory.findIndex(i=>i.id==='revive');
+    if(idx<0){ toast('没有复活石'); render(); return; }
+    const c = battle.party.find(x=>x.id===id);
+    if(!c || c.alive){ toast('目标无效'); render(); return; }
+    game.inventory.splice(idx, 1);
+    c.alive = true;
+    c.hp = Math.max(1, Math.round(maxHp(c)*0.3));
+    battleLog(`<span class="log-heal">使用复活石！${c.name}以30%血量复活</span>`);
+    render();
+    return;
+  }
+  doAction(skId, id);
+};
+ACT.skipTurn = () => { skipTurn(); };
+ACT.repeatLast = () => { repeatLast(); };
+ACT.useRevive = () => {
+  if(!battle || battle.over) return;
+  const dead = battle.party.filter(c=>!c.alive);
+  if(!dead.length || !game.inventory.some(i=>i.id==='revive')){ toast('没有可用的复活石或无人阵亡'); return; }
+  UI.target = { skill:'revive', mode:'ally' };
+  render();
+};
+ACT.battleEnd = () => { endBattle(); };
+/* ================= 20. 非战斗节点通用 ================= */
+function finishNode(){                 // 节点结算：标记已访问 + 自动存档 + 回地图
+  const g = game;
+  g.visited[g.currentNodeId] = true;
+  saveGame();
+  go('map');
+}
+function resUp(c, n){                  // 资源强化：坦克走护盾生成，其余走资源上限
+  if(c.job==='tank') c.bonusShieldGen += n;
+  else c.bonusRes += n;
+}
+function charPickHtml(act){            // 目标角色选择按钮组
+  return game.party.map(c=>`<button class="btn" data-act="${act}" data-arg="${c.id}">${JOBS[c.job].icon} ${esc(c.name)}</button>`).join('');
+}
+function fmtTime(s){
+  s = Math.floor(s||0);
+  const m = Math.floor(s/60);
+  return m ? `${m}分${s%60}秒` : `${s}秒`;
+}
+
+/* ================= 21. 商店（8.4：每章随机5件，售出不补货，价格×E） ================= */
+function rollShop(ch){
+  const pool = SHOP_ITEMS.filter(it => it.id!=='relic' || game.party.some(c=>c.job==='priest'));  // 圣物需队伍有牧师
+  return shuffle([...pool]).slice(0,5).map(it => Object.assign({}, it, { price: Math.max(1, Math.round(it.price * E[ch-1])) }));
+}
+function startWanderingShop(){         // 8.7 流浪商人：3件半价临时商店
+  const g = game;
+  const pool = SHOP_ITEMS.filter(it => it.id!=='relic' || g.party.some(c=>c.job==='priest'));
+  UI.shop = { stock: shuffle([...pool]).slice(0,3).map(it => Object.assign({}, it, { price: Math.max(1, Math.round(it.price * E[g.chapter-1] * 0.5)) })), wandering:true };
+  UI.shopTarget = null;
+  go('shop');
+}
+function applyShopItem(it, c){         // 商品效果（全部按最大血量/成长乘法）
+  switch(it.id){
+    case 'potion': c.hp = Math.min(maxHp(c), c.hp + Math.round(maxHp(c)*0.5)); break;
+    case 'weapon': c.growth.atk  *= 1.10; break;
+    case 'armor':  c.growth.def  *= 1.10; break;
+    case 'life':   c.growth.hp   *= 1.10; c.hp = Math.min(maxHp(c), c.hp); break;
+    case 'res':    resUp(c, 2); break;
+    case 'relic':  c.growth.heal *= 1.15; break;
+  }
+}
+function buyShopItem(idx){
+  const sh = UI.shop, it = sh.stock[idx];
+  if(!it || game.gold < it.price) return false;
+  game.gold -= it.price;
+  sh.stock.splice(idx, 1);
+  saveGame();
+  return true;
+}
+SCREENS.shop = () => {
+  const g = game, sh = UI.shop;
+  if(!sh) return '';
+  const rows = sh.stock.map((it,i)=>{
+    const disabled = g.gold < it.price ? 'disabled' : '';
+    return `<div class="shop-item">
+      <span style="font-size:26px">${it.icon}</span>
+      <div class="si-info"><div>${esc(it.name)}</div><div class="muted">${esc(it.desc)}</div></div>
+      <span class="gold">${it.price}金币</span>
+      <button class="btn btn-sm btn-gold" data-act="shop_buy" data-arg="${i}" ${disabled}>购买</button>
+    </div>`;
+  }).join('');
+  const pick = UI.shopTarget!=null ? (()=>{
+    const it = sh.stock[UI.shopTarget];
+    return `<div class="target-hint">选择 ${esc(it?it.name:'')} 的使用对象</div>
+      <div class="flex mt16">${charPickHtml('shop_target')}</div>`;
+  })() : '';
+  return `<div class="flex" style="justify-content:space-between">
+      <h3 style="color:var(--gold2)">🏪 ${sh.wandering?'流浪商人':'商店'}</h3>
+      <span class="chip">💰 ${g.gold}金币</span>
+    </div>
+    ${sh.wandering?'<div class="panel"><div class="muted">🧙 流浪商人的临时摊位：3件半价商品，售完即走、仅此一次。</div></div>':''}
+    ${rows || '<div class="panel"><div class="muted">货架空空如也（售出不补货）。</div></div>'}
+    ${pick}
+    <div class="center mt16"><button class="btn" data-act="shop_leave">离开商店</button></div>`;
+};
+ACT.shop_buy = idx => {
+  const sh = UI.shop; if(!sh) return;
+  const it = sh.stock[idx]; if(!it) return;
+  if(it.id==='revive'){                // 消耗品：直接入背包
+    if(buyShopItem(idx)) toast(`已购买 ${it.name}（放入背包）`); else toast('金币不足');
+    render(); return;
+  }
+  if(it.id==='relic'){                 // 圣物：自动作用于第一名牧师
+    const pr = game.party.find(c=>c.job==='priest');
+    if(pr && buyShopItem(idx)){ applyShopItem(it, pr); toast(`${it.name}已作用于 ${pr.name}`); }
+    else if(!pr) toast('队伍没有牧师');
+    else toast('金币不足');
+    render(); return;
+  }
+  UI.shopTarget = idx; render();
+};
+ACT.shop_target = id => {
+  const idx = UI.shopTarget; if(idx==null) return;
+  const sh = UI.shop, it = sh.stock[idx]; if(!it) return;
+  const c = game.party.find(x=>x.id===id); if(!c) return;
+  if(!buyShopItem(idx)){ toast('金币不足'); return; }
+  applyShopItem(it, c);
+  toast(`购买成功：${it.name} → ${c.name}`);
+  UI.shopTarget = null;
+  render();
+};
+ACT.shop_leave = () => { UI.shopTarget = null; finishNode(); };
+
+/* ================= 22. 休息点（8.5：四选一） ================= */
+const REST_OPTIONS = [
+  { id:'heal', label:'🔥 全队休整', desc:'全队恢复40%最大血量' },
+  { id:'hp',   label:'❤️ 生命祝福', desc:'一名角色血量上限 +12%' },
+  { id:'atk',  label:'⚔️ 战意磨砺', desc:'一名角色攻击 +12%' },
+  { id:'def',  label:'🛡️ 铁壁训练', desc:'一名角色防御 +12%' }
+];
+SCREENS.rest = () => {
+  const opts = REST_OPTIONS.map(o=>`<div class="reward-card" data-act="rest_pick" data-arg="${o.id}">
+      <div class="rt">${o.label}</div><div class="muted">${esc(o.desc)}</div>
+    </div>`).join('');
+  const pick = UI.restTarget ? `<div class="target-hint">选择获得加成的角色</div><div class="flex mt16">${charPickHtml('rest_target')}</div>` : '';
+  return `<h3 style="color:var(--gold2)">🔥 休息点</h3>
+    <div class="panel"><div class="muted">营火噼啪作响。四选一，选择后离开：</div></div>
+    <div class="flex mt16">${opts}</div>${pick}`;
+};
+ACT.rest_pick = k => {
+  if(k==='heal'){
+    game.party.forEach(c=>{ c.hp = Math.min(maxHp(c), c.hp + Math.round(maxHp(c)*0.4)); });
+    toast('全队恢复40%最大血量');
+    finishNode();
+    return;
+  }
+  UI.restTarget = k; render();
+};
+ACT.rest_target = id => {
+  const k = UI.restTarget;
+  const c = game.party.find(x=>x.id===id);
+  if(!k || !c) return;
+  if(k==='hp'){ c.growth.hp *= 1.12; c.hp = Math.min(maxHp(c), c.hp); }
+  else if(k==='atk') c.growth.atk *= 1.12;
+  else if(k==='def') c.growth.def *= 1.12;
+  toast(`${c.name}获得${k==='hp'?'血量上限':k==='atk'?'攻击':'防御'}+12%`);
+  finishNode();
+};
+
+/* ================= 23. 奇遇（8.7：10种，数据在顶部第5节） ================= */
+SCREENS.event = () => {
+  const ev = UI.event; if(!ev || !ev.enc) return '';
+  const enc = ev.enc;
+  let body = '';
+  if(ev.msg){
+    body = `<div class="panel">${ev.msg}</div><div class="center mt16"><button class="btn btn-gold" data-act="event_done">继续</button></div>`;
+  } else if(ev.targetOpt!=null){
+    body = `<div class="target-hint">选择目标角色</div><div class="flex mt16">${charPickHtml('event_target')}</div>`;
+  } else {
+    body = `<div class="flex mt16">${enc.options.map((o,i)=>`<div class="reward-card" data-act="event_pick" data-arg="${i}"><div class="rt">${esc(o.label)}</div></div>`).join('')}</div>`;
+  }
+  return `<h3 style="color:var(--gold2)">❓ 奇遇</h3>
+    <div class="event-text">${enc.icon} ${esc(enc.desc)}</div>${body}`;
+};
+ACT.event_pick = i => {
+  const ev = UI.event; if(!ev) return;
+  const opt = ev.enc.options[i]; if(!opt) return;
+  if(opt.needTarget){ ev.targetOpt = i; render(); return; }
+  const r = opt.run();
+  if(r==null) return;                  // 已切换屏幕（如流浪商人）
+  ev.msg = r; ev.targetOpt = null; render();
+};
+ACT.event_target = id => {
+  const ev = UI.event; const c = game.party.find(x=>x.id===id);
+  if(!ev || !c) return;
+  const enc = ev.enc; let msg = '';
+  if(enc.id==='sacrifice'){
+    c.growth.hp *= 0.8; c.growth.atk *= 1.2;
+    c.hp = Math.min(maxHp(c), c.hp);
+    msg = `${c.name}献祭了20%血量上限，攻击+20%！`;
+  } else if(enc.id==='spring'){
+    resUp(c, 3);
+    msg = `${c.name}饮用智慧之泉，职业资源上限+3！`;
+  } else if(enc.id==='veteran'){
+    c.growth.atk *= 1.08; c.growth.def *= 1.08;
+    msg = `${c.name}获得老兵教导：攻击+8%、防御+8%！`;
+  } else if(enc.id==='fate'){
+    if(!c.traits.length){ msg = `${c.name}没有特性可重掷。`; }
+    else {
+      const i = Math.floor(rng()*c.traits.length);
+      const lv = c.traits[i].lv;
+      const old = traitLabel(c.traits[i]);
+      c.traits[i] = genTraits(lv, c.job)[0];
+      msg = `${c.name}的命运被重写：${old} → ${traitLabel(c.traits[i])}`;
+    }
+  }
+  ev.msg = msg; ev.targetOpt = null; render();
+};
+ACT.event_done = () => finishNode();
+
+/* ================= 24. 精英奖励（8.6）与 Boss 二选一（9.2） ================= */
+const ELITE_REWARDS = [
+  { id:'atk',   label:'⚔️ 攻击+10%',   desc:'目标角色攻击成长 ×1.10' },
+  { id:'hp',    label:'❤️ 血量上限+10%', desc:'目标角色血量成长 ×1.10' },
+  { id:'def',   label:'🛡️ 防御+10%',   desc:'目标角色防御成长 ×1.10' },
+  { id:'res',   label:'💎 资源上限+2',  desc:'战士/法师资源+2；坦克护盾生成+2%' },
+  { id:'trait', label:'✨ 一条2级特性', desc:'为目标角色随机附加一条2级特性' }
+];
+function eliteCands(){ return shuffle([...ELITE_REWARDS]).slice(0,3); }
+function applyEliteReward(id, c){
+  if(id==='atk'){ c.growth.atk *= 1.10; return `${c.name}攻击成长 +10%！`; }
+  if(id==='hp'){ c.growth.hp *= 1.10; c.hp = Math.min(maxHp(c), c.hp); return `${c.name}血量上限 +10%！`; }
+  if(id==='def'){ c.growth.def *= 1.10; return `${c.name}防御成长 +10%！`; }
+  if(id==='res'){ resUp(c, 2); return `${c.name}职业资源上限 +2！`; }
+  if(id==='trait'){ const t = genTraits(2, c.job)[0]; c.traits.push(t); return `${c.name}获得特性：${traitLabel(t)}`; }
+  return '';
+}
+SCREENS.reward = () => {
+  const r = UI.reward; if(!r) return '';
+  if(!r.step){
+    if(r.mode==='elite'){ r.step = 'pick'; r.cands = eliteCands(); }
+    else { r.step = 'choice'; }
+  }
+  const g = game;
+  if(r.mode==='elite'){
+    if(r.step==='pick'){
+      return `<h3 style="color:var(--gold2)">💀 精英战胜利</h3>
+        <div class="panel">金币已结算。从以下3个强化中选择1项：</div>
+        <div class="flex mt16">${r.cands.map((c,i)=>`<div class="reward-card" data-act="reward_pick" data-arg="${i}">
+          <div class="rt">${c.label}</div><div class="muted">${esc(c.desc)}</div>
+        </div>`).join('')}</div>`;
+    }
+    if(r.step==='target'){
+      return `<h3 style="color:var(--gold2)">💀 精英战胜利</h3>
+        <div class="target-hint">选择 ${esc(r.cands[r.sel] ? r.cands[r.sel].label : '')} 的目标角色</div>
+        <div class="flex mt16">${charPickHtml('reward_target')}</div>`;
+    }
+    return `<h3 style="color:var(--gold2)">💀 精英战胜利</h3>
+      <div class="panel">${r.msg}</div>
+      <div class="center mt16"><button class="btn btn-gold" data-act="reward_map">返回地图</button></div>`;
+  }
+  /* Boss 二选一 */
+  if(r.step==='choice'){
+    const full = g.party.length>=4;
+    return `<h3 style="color:var(--gold2)">👹 ${BOSSES[g.chapter-1].name} 已被击败！</h3>
+      <div class="panel">章节奖励·二选一：</div>
+      <div class="flex mt16">
+        <div class="reward-card" data-act="reward_bossA" style="${full?'opacity:.5;cursor:not-allowed':''}">
+          <div class="rt">👥 招募新队友</div>
+          <div class="muted">${full?'队伍已满4人，无法招募':'属性 = 职业基础 × 难度 × E[下一章]，附带一条3级特性'}</div>
+        </div>
+        <div class="reward-card" data-act="reward_bossB">
+          <div class="rt">⭐ 5级特性</div>
+          <div class="muted">随机3条候选选1，附加给指定角色（不改变队伍人数）</div>
+        </div>
+      </div>`;
+  }
+  if(r.step==='recruit'){
+    const st = UI.create;
+    const genderOpts = [['male','男 ♂（血量+10%）'],['female','女 ♀（职业资源+10%）']]
+      .map(([v,l])=>`<button class="seg-btn ${st.gender===v?'sel':''}" data-act="rGender" data-arg="${v}">${l}</button>`).join('');
+    const jobOpts = JOB_KEYS.map(k=>{ const jj=JOBS[k]; return `<button class="seg-btn ${st.job===k?'sel':''}" data-act="rJob" data-arg="${k}">${jj.icon} ${jj.name}</button>`; }).join('');
+    return `<h3 style="color:var(--gold2)">👥 招募新队友</h3>
+      <div class="panel"><div class="muted">属性 = 职业基础值 × ${DIFF[g.difficulty].name}难度 × ${E[g.chapter].toFixed(2)}（下一章系数），附带一条3级特性；已购强化不追溯。</div></div>
+      <div class="field"><label>姓名</label><input class="input" maxlength="8" placeholder="输入新队友姓名" value="${esc(st.name)}" data-in="name"></div>
+      <div class="field"><label>性别</label><div class="seg">${genderOpts}</div></div>
+      <div class="field"><label>职业</label><div class="seg">${jobOpts}</div></div>
+      <div class="center mt16"><button class="btn btn-gold btn-lg" data-act="recruit_ok">确认招募</button></div>`;
+  }
+  if(r.step==='traitChar'){
+    return `<h3 style="color:var(--gold2)">⭐ 5级特性</h3>
+      <div class="target-hint">选择要附加特性的角色</div>
+      <div class="flex mt16">${charPickHtml('reward_traitChar')}</div>`;
+  }
+  if(r.step==='traitPick'){
+    return `<h3 style="color:var(--gold2)">⭐ 5级特性</h3>
+      <div class="panel">为 ${esc(r.traitCharName)} 选择1条5级特性（3选1）：</div>
+      <div class="flex mt16">${r.cands.map((cand,i)=>`<div class="reward-card" data-act="reward_traitPick" data-arg="${i}">
+        <div class="rt">候选 ${i+1}</div><div class="muted">${cand.map(t=>esc(traitLabel(t))).join('<br>')}</div>
+      </div>`).join('')}</div>`;
+  }
+  return '';
+};
+ACT.reward_pick = i => {
+  const r = UI.reward;
+  if(!r || r.mode!=='elite' || r.step!=='pick' || !r.cands[i]) return;
+  r.sel = i; r.step = 'target'; render();
+};
+ACT.reward_target = id => {
+  const r = UI.reward;
+  if(!r || r.step!=='target') return;
+  const c = game.party.find(x=>x.id===id); if(!c) return;
+  r.msg = applyEliteReward(r.cands[r.sel].id, c);
+  r.step = 'done'; render();
+};
+ACT.reward_map = () => { UI.reward = null; go('map'); };
+ACT.reward_bossA = () => {
+  const r = UI.reward; if(!r) return;
+  if(game.party.length>=4){ toast('队伍已满4人，无法招募'); return; }
+  UI.create = { name:'', gender:'male', job:'warrior', diff:'normal' };
+  r.step = 'recruit'; render();
+};
+ACT.reward_bossB = () => { const r = UI.reward; if(!r) return; r.step = 'traitChar'; r.traitCharId = null; render(); };
+ACT.reward_traitChar = id => {
+  const r = UI.reward;
+  if(!r || r.step!=='traitChar') return;
+  const c = game.party.find(x=>x.id===id); if(!c) return;
+  r.traitCharId = id; r.traitCharName = c.name;
+  r.cands = [1,2,3].map(()=>genTraits(5, c.job));   // 3条5级特性候选
+  r.step = 'traitPick'; render();
+};
+ACT.reward_traitPick = i => {
+  const r = UI.reward;
+  if(!r || r.step!=='traitPick') return;
+  const c = game.party.find(x=>x.id===r.traitCharId); if(!c) return;
+  const cand = r.cands[i]; if(!cand) return;
+  c.traits.push(...cand);
+  toast(`${c.name}获得5级特性！`);
+  nextChapter();
+};
+ACT.rGender = a => { UI.create.gender = a; render(); };
+ACT.rJob = a => { UI.create.job = a; render(); };
+ACT.recruit_ok = () => {
+  const g = game;
+  if(g.party.length>=4){ toast('队伍已满'); return; }
+  const st = UI.create;
+  const name = (st.name||'').trim() || ('新·'+JOBS[st.job].name);
+  const c = makeChar({ name, gender: st.gender, job: st.job, diffMul: DIFF[g.difficulty].mul, traitLv:3, eMul: E[g.chapter] });
+  g.party.push(c);
+  toast(`👥 ${c.name}（${JOBS[c.job].name}）加入队伍！`);
+  nextChapter();
+};
+function nextChapter(){                // 进入下一章：重新生成地图/商店，重置路线状态
+  const g = game;
+  g.chapter++;
+  g.layer = 0;
+  g.currentNodeId = null;
+  g.prevNodeId = null;
+  g.visited = {};
+  g.mapSeed = (Date.now()>>>0) || 1;
+  srand(g.mapSeed);
+  g.map = genMap(g.chapter);
+  g.shopStock = rollShop(g.chapter);
+  UI.reward = null;
+  saveGame();
+  toast('进入 '+CHAPTER_NAMES[g.chapter-1]);
+  go('map');
+}
+
+/* ================= 25. 通关结算 ================= */
+SCREENS.victory = () => {
+  const g = game;
+  return `<div class="center" style="padding-top:60px">
+    <div style="font-size:60px">🏆</div>
+    <h2 style="color:var(--gold2);margin:12px 0">远征完成！</h2>
+    <p class="muted">你击败了混沌领主，五章爬塔远征圆满落幕。</p>
+    <div class="panel" style="max-width:420px;margin:24px auto">
+      <div class="stat-row"><span>击杀怪物</span><span class="gold">${g.stats.kills}</span></div>
+      <div class="stat-row"><span>战斗回合</span><span class="gold">${g.stats.turns}</span></div>
+      <div class="stat-row"><span>已用时长</span><span class="gold">${fmtTime(g.stats.time)}</span></div>
+      <div class="stat-row"><span>最终队伍</span><span class="gold">${g.party.length}人</span></div>
+    </div>
+    <button class="btn btn-gold btn-lg" data-act="victory_restart">重新开始</button>
+  </div>`;
+};
+ACT.victory_restart = () => { clearSave(); game = null; go('menu'); };
+
+/* ================= 26. 系统自检与平衡性模拟（规格书 13 节） ================= */
+/* 无界面回归：静态断言 + AI 自动战斗模拟（1~5章 × 3难度 × 3战斗类型）。
+   复用真实战斗引擎（makeMonsterGroup/genAllIntents/execIntent/executeSkill/checkBattleEnd/regen），
+   不渲染 DOM、不触碰存档；模拟期间全局 rng/battle 现场保护，结束后还原。 */
+const SIM_ROUNDS = 60;              // 每组模拟场数
+const SIM_SEED   = 20240813;        // 确定性种子：结果可复现
+const SIM_DIFFS  = Object.keys(DIFF);
+const SIM_TYPES  = ['battle','elite','boss'];
+
+function simAssert(rows, name, cond, detail){
+  rows.push({ name, ok: !!cond, detail: detail || (cond ? '通过' : '失败') });
+  return !!cond;
+}
+
+/* ---- 13.1 静态回归断言（代码级自检） ---- */
+function simStaticChecks(){
+  const rows = [];
+  simAssert(rows, '章节系数 E 单调递增（1.0→2.9）',
+    E.length===5 && E.every((v,i)=> i===0 || v>E[i-1]), E.join(' → '));
+  simAssert(rows, '玩家成长曲线不低于怪物系数（第1章持平，其后反超）',
+    PLAYER_GROWTH.length===5 && PLAYER_GROWTH.every((v,i)=> v>=E[i]),
+    PLAYER_GROWTH.map((v,i)=> v.toFixed(2)+' vs '+E[i].toFixed(2)).join('；'));
+  simAssert(rows, 'N_EFF 基准：N=1 → 1，N=4 → 3.55',
+    N_EFF(1)===1 && Math.abs(N_EFF(4)-3.55)<1e-9, '1 + 0.85×(N-1)');
+  simAssert(rows, '怪物总量 P=12×N_eff×E 随章节递增',
+    (12*N_EFF(1)*E[0])===12 && 12*N_EFF(4)*E[4] > 12*N_EFF(3)*E[3],
+    '第1章 '+Math.round(12*N_EFF(1)*E[0])+' → 第5章 '+Math.round(12*N_EFF(4)*E[4]));
+  simAssert(rows, '五大 Boss 专属机制齐备',
+    BOSSES.length===5 && BOSSES.every(b=> b.name && b.mechanic));
+  simAssert(rows, '十种奇遇独立实现', ENCOUNTERS.length===10);
+  simAssert(rows, '属性结算顺序函数齐备（基础×难度×性别×特性×强化）',
+    ['maxHp','atkOf','defOf','resMax','resRegen','healMul'].every(f=> typeof window[f]==='function'));
+  simAssert(rows, '商店7件/休息4选1/精英5选3/特性5级表齐备',
+    SHOP_ITEMS.length===7 && REST_OPTIONS.length===4 && ELITE_REWARDS.length===5 && TRAIT_LEVELS.length===5);
+  simAssert(rows, '全灭软惩罚与章节/结算路由存在',
+    typeof endBattle==='function' && typeof nextChapter==='function' && typeof SCREENS.victory==='function');
+  simAssert(rows, '战斗引擎核心函数可被模拟器复用',
+    ['makeMonsterGroup','genAllIntents','execIntent','executeSkill','checkBattleEnd','regen'].every(f=> typeof window[f]==='function'));
+  return rows;
+}
+
+/* ---- 13.2 AI 标准策略（集火血量最低目标；治疗阈值 50%/80%；低血量防御） ---- */
+function simAct(c){
+  const mons = battle.monsters.filter(m=>m.hp>0);
+  if(!mons.length) return;
+  const lowMon = mons.reduce((a,b)=> a.hp<=b.hp ? a : b);
+  const j = JOBS[c.job];
+  const hpPct = c.hp/maxHp(c);
+  const sk = id => j.skills.find(s=>s.id===id);
+  const usable = s => s && !skillDisabledReason(c, s);
+  const doSkill = (s, tid) => { if(usable(s)) executeSkill(c, s, tid); };
+  switch(c.job){
+    case 'warrior':
+      if(hpPct<0.3 && usable(sk('defend'))){ doSkill(sk('defend'), null); return; }
+      if(c.res>=3 && usable(sk('heavy'))){ doSkill(sk('heavy'), lowMon.id); return; }
+      if(c.res>=1 && usable(sk('light'))){ doSkill(sk('light'), lowMon.id); return; }
+      doSkill(sk('attack'), lowMon.id); return;
+    case 'mage':
+      if(c.res>=5 && usable(sk('arcane'))){ doSkill(sk('arcane'), lowMon.id); return; }
+      if(c.res>=1 && usable(sk('fireball'))){ doSkill(sk('fireball'), lowMon.id); return; }
+      if(c.res<1 && usable(sk('meditate'))){ doSkill(sk('meditate'), null); return; }
+      doSkill(sk('attack'), lowMon.id); return;
+    case 'tank':
+      if(hpPct<0.35 && usable(sk('defend'))){ doSkill(sk('defend'), null); return; }
+      if(c.shield>=resMax(c)*0.4 && usable(sk('counter'))){ doSkill(sk('counter'), lowMon.id); return; }
+      if(c.status.tauntT<=0 && usable(sk('taunt'))){ doSkill(sk('taunt'), null); return; }
+      doSkill(sk('attack'), lowMon.id); return;
+    case 'priest': {
+      const injured = battle.party.filter(x=> x.alive && x.hp<maxHp(x));
+      if(injured.length){
+        const low = injured.reduce((a,b)=> a.hp/maxHp(a) <= b.hp/maxHp(b) ? a : b);
+        const lowPct = low.hp/maxHp(low);
+        if(lowPct<0.5 && usable(sk('bigHeal'))){ doSkill(sk('bigHeal'), low.id); return; }
+        if(lowPct<0.8 && hpPct>0.15 && usable(sk('smallHeal'))){ doSkill(sk('smallHeal'), low.id); return; }
+      }
+      doSkill(sk('attack'), lowMon.id); return;
+    }
+  }
+}
+
+/* ---- 13.9 规格书13节「参考 build」AI：普攻节奏（每回合输出≈职业基础攻击，贴合7.1的P=12假设），
+      仅保留：低血量防御、坦克嘲讽、牧师保底治疗。技能爆发是玩家的优化空间，不计入参考节奏 ---- */
+function simActRef(c){
+  const mons = battle.monsters.filter(m=>m.hp>0);
+  if(!mons.length) return;
+  const lowMon = mons.reduce((a,b)=> a.hp<=b.hp ? a : b);
+  const j = JOBS[c.job];
+  const sk = id => j.skills.find(s=>s.id===id);
+  const usable = s => s && !skillDisabledReason(c, s);
+  const hpPct = c.hp/maxHp(c);
+  switch(c.job){
+    case 'warrior':
+      if(hpPct<0.25 && usable(sk('defend'))){ executeSkill(c, sk('defend'), null); return; }
+      executeSkill(c, sk('attack'), lowMon.id); return;
+    case 'mage':
+      if(hpPct<0.25 && usable(sk('defend'))){ executeSkill(c, sk('defend'), null); return; }
+      executeSkill(c, sk('attack'), lowMon.id); return;
+    case 'tank':
+      if(c.status.tauntT<=0 && usable(sk('taunt'))){ executeSkill(c, sk('taunt'), null); return; }
+      if(hpPct<0.3 && usable(sk('defend'))){ executeSkill(c, sk('defend'), null); return; }
+      executeSkill(c, sk('attack'), lowMon.id); return;
+    case 'priest': {
+      const injured = battle.party.filter(x=> x.alive && x.hp<maxHp(x));
+      if(injured.length){
+        const low = injured.reduce((a,b)=> a.hp/maxHp(a) <= b.hp/maxHp(b) ? a : b);
+        const lowPct = low.hp/maxHp(low);
+        if(lowPct<0.4 && hpPct>0.25 && usable(sk('bigHeal'))){ executeSkill(c, sk('bigHeal'), low.id); return; }
+        if(lowPct<0.7 && hpPct>0.15 && usable(sk('smallHeal'))){ executeSkill(c, sk('smallHeal'), low.id); return; }
+      }
+      executeSkill(c, sk('attack'), lowMon.id); return;
+    }
+  }
+}
+
+/* ---- 13.3 单场模拟（与真实流程同构：玩家回合→敌方回合→减益→预告→灼烧→回复） ---- */
+function simBattle(ch, type, party, aiFn){   // aiFn：模拟 AI（默认技能AI；规格书13节参考build用普攻流 simActRef）
+  const prevBattle = battle;
+  battle = {
+    chapter: ch, type, turn: 1, phase: 'player', actingIdx: 0, actorId: null,
+    party, monsters: makeMonsterGroup(ch, type, party.length),
+    log: [], actions: [], lastActions: [], over: false, victory: false
+  };
+  let res = { victory:false, turns:0, alive:0, hpPct:0 };
+  try{
+    genAllIntents();
+    let guard = 0;
+    while(!battle.over && guard++ < 300){
+      battle.party.forEach(c=>{ if(c.alive && !battle.over) (aiFn||simAct)(c); });   // 玩家回合
+      checkBattleEnd();
+      if(battle.over) break;
+      battle.monsters.filter(m=>m.hp>0).forEach(m=>{                          // 敌方回合（预告执行）
+        if(m.intent) execIntent(m, m.intent);
+        if(m.hp>0 && m.intent2) execIntent(m, m.intent2);
+      });
+      checkBattleEnd();
+      if(battle.over) break;
+      battle.party.forEach(c=>{                                               // 减益结算
+        c.status.defend = false;
+        if(c.status.curse>0) c.status.curse--;
+        if(c.status.tauntT>0) c.status.tauntT--;
+      });
+      genAllIntents();                                                        // 意图预告领先一步
+      battle.turn++;                                                          // 新回合：灼烧→回复
+      battle.party.forEach(c=>{
+        if(c.alive && c.status.burn>0){
+          const d = Math.max(1, Math.round(maxHp(c)*0.03*E[battle.chapter-1]));
+          c.hp = Math.max(0, c.hp-d);
+          if(c.hp<=0){ c.hp=0; c.alive=false; }
+          c.status.burn--;
+        }
+      });
+      checkBattleEnd();
+      if(battle.over) break;
+      battle.party.forEach(c=>{ if(c.alive) regen(c); });
+    }
+    const alive = battle.party.filter(c=>c.alive);
+    res = {
+      victory: battle.victory,
+      turns: battle.turn,
+      alive: alive.length,
+      hpPct: alive.length ? alive.reduce((s,c)=>s+c.hp/maxHp(c),0)/alive.length : 0
+    };
+  } finally { battle = prevBattle; }
+  return res;
+}
+
+/* ---- 13.4 队伍生成与分组模拟 ----
+   章节人数曲线 1→2→3→4→4（主角+每章 Boss 战后招募）；
+   主角：无章节缩放；队友：属性=基础×难度×E[当前章]，固定一条3级特性（对应招募规则）。 */
+function simMakeParty(ch, diff){
+  const d = DIFF[diff];
+  const jobs  = ['warrior','mage','tank','priest'];
+  const names = ['战士','法师','坦克','牧师'];
+  return jobs.map((job,i)=>{
+    // 主角按规格书 8.1 玩家期望成长曲线 PLAYER_GROWTH 建模（保守下界：不含商店/奇遇/精英强化）；
+    // 第 i 名队友在「第 i 章 Boss 战后」入队，系数 = E[i]（对应招募规则）
+    const eMul    = i===0 ? PLAYER_GROWTH[ch-1] : E[i];
+    const traitLv = i===0 ? d.traitLv : 3;
+    return makeChar({ name: names[i], gender: i%2 ? 'female' : 'male', job, diffMul: d.mul, traitLv, eMul });
+  }).slice(0, Math.min(ch, 4));
+}
+function simCloneParty(party){
+  return party.map(c=>{
+    const n = makeChar({ name:c.name, gender:c.gender, job:c.job, diffMul:c.diffMul, traitLv:0, eMul:1 });
+    n.growth = Object.assign({}, c.growth);
+    n.traits = c.traits.map(t=>Object.assign({}, t));
+    n.bonusRes = c.bonusRes; n.bonusShieldGen = c.bonusShieldGen;
+    n.hp = maxHp(n);
+    if(n.job==='tank') n.shield = 0; else n.res = resMax(n);
+    return n;
+  });
+}
+function simRunGroup(ch, diff, type, rounds){
+  const party = simMakeParty(ch, diff);
+  let win=0, turns=0, alive=0, hpPct=0;
+  for(let i=0;i<rounds;i++){
+    const r = simBattle(ch, type, simCloneParty(party));
+    if(r.victory) win++;
+    turns += r.turns; alive += r.alive; hpPct += r.hpPct;
+  }
+  return { ch, diff, type, rounds,
+    winRate: win/rounds,
+    avgTurns: turns/rounds,
+    avgAlive: alive/rounds,
+    avgHpPct: hpPct/rounds };
+}
+
+/* ---- 13.5 平衡判定（普通战偏易；精英有挑战；Boss 为章节守关） ---- */
+function simJudge(type, winRate){
+  const t = {
+    battle: { tooEasy:0.97, ok:0.75, warn:0.55 },
+    elite:  { tooEasy:0.94, ok:0.55, warn:0.40 },
+    boss:   { tooEasy:0.92, ok:0.40, warn:0.28 }
+  }[type];
+  if(winRate >= t.tooEasy) return { lv:'tooEasy', label:'过易', cls:'bad' };
+  if(winRate >= t.ok)      return { lv:'ok',      label:'平衡', cls:'ok' };
+  if(winRate >= t.warn)    return { lv:'warn',    label:'偏难', cls:'bad' };
+  return { lv:'tooHard', label:'过难', cls:'bad' };
+}
+
+/* ---- 13.6 入口：静态断言 + 全量模拟 ---- */
+function runSelfCheck(){
+  const t0 = Date.now();
+  const savedSeed = _seed, savedS = _s, savedBattle = battle;
+  const staticRows = simStaticChecks();
+  const groups = [];
+  try{
+    srand(SIM_SEED);                 // 确定性序列，回归可复现
+    for(let ch=1; ch<=5; ch++){
+      for(const diff of SIM_DIFFS){
+        for(const type of SIM_TYPES){
+          groups.push(simRunGroup(ch, diff, type, SIM_ROUNDS));
+        }
+      }
+    }
+  } finally {
+    _seed = savedSeed; _s = savedS; battle = savedBattle;   // 现场还原
+  }
+  const allStaticOk = staticRows.every(r=>r.ok);
+  const tooHard = groups.filter(g=> simJudge(g.type, g.winRate).lv==='tooHard');
+  const tooEasy = groups.filter(g=> simJudge(g.type, g.winRate).lv==='tooEasy');
+  const warn    = groups.filter(g=> simJudge(g.type, g.winRate).lv==='warn');
+  const chRating = [1,2,3,4,5].map(ch=>{
+    const gs = groups.filter(g=>g.ch===ch);
+    return {
+      ch,
+      hard: gs.some(g=> simJudge(g.type, g.winRate).lv==='tooHard'),
+      easy: gs.some(g=> simJudge(g.type, g.winRate).lv==='tooEasy')
+    };
+  });
+  return {
+    static: staticRows, groups, tooHard, tooEasy, warn, chRating,
+    pass: allStaticOk && !tooHard.length,
+    elapsed: ((Date.now()-t0)/1000).toFixed(1)
+  };
+}
+
+/* ---- 13.7 模拟报告弹窗 ---- */
+function simModal(r){
+  const pct = v => (v*100).toFixed(0)+'%';
+  const cell = g => {
+    const j = simJudge(g.type, g.winRate);
+    return `<span class="${j.cls}">${pct(g.winRate)}</span><div class="muted">回合${g.avgTurns.toFixed(1)} · 存活${g.avgAlive.toFixed(1)}</div>`;
+  };
+  const staticHtml = r.static.map(s=>
+    `<tr><td style="text-align:left">${esc(s.name)}</td><td class="${s.ok?'ok':'bad'}">${s.ok?'✓ 通过':'✗ 失败'}</td><td style="text-align:left" class="muted">${esc(s.detail)}</td></tr>`).join('');
+  const simRows = [1,2,3,4,5].map(ch=>{
+    const gs = r.groups.filter(g=>g.ch===ch);
+    return SIM_DIFFS.map(diff=>{
+      const g = gs.filter(x=>x.diff===diff);
+      const b = g.find(x=>x.type==='battle'), e = g.find(x=>x.type==='elite'), s = g.find(x=>x.type==='boss');
+      const rat = r.chRating.find(x=>x.ch===ch);
+      return `<tr>
+        <td>${ch}</td><td>${DIFF[diff].name}</td>
+        <td>${cell(b)}</td><td>${cell(e)}</td><td>${cell(s)}</td>
+        <td>${rat.hard?'<span class="bad">过难</span>':(rat.easy?'<span class="bad">过易</span>':'<span class="ok">正常</span>')}</td>
+      </tr>`;
+    }).join('');
+  }).join('');
+  const concl = [];
+  if(!r.static.every(x=>x.ok)) concl.push('静态断言存在失败项');
+  if(r.tooHard.length) concl.push(r.tooHard.length+' 组判定「过难」（下界队伍无法稳定通关，建议上调对应章节玩家成长或下调怪物系数）');
+  if(r.tooEasy.length) concl.push(r.tooEasy.length+' 组判定「过易」（AI标准策略·保守下界队伍亦无压力；属公式结构性宽松——玩家血量随人数线性增长而怪物按 N_eff 亚线性增长；如需挑战性可上调怪物基准 hpEff/dmgTar）');
+  if(r.warn.length)    concl.push(r.warn.length+' 组判定「偏难」（下界队伍有压力，建议关注）');
+  return `<div class="modal-mask" data-act="modal_close"><div class="modal">
+    <h3>🧪 平衡自检报告</h3>
+    <div class="muted">无界面自动化回归 · 每组 ${SIM_ROUNDS} 场 · 确定性种子 ${SIM_SEED} · 耗时 ${r.elapsed}s</div>
+    <div class="panel"><div class="panel-title">① 静态回归断言</div>
+      <table class="sim"><tr><th style="width:36%">检查项</th><th style="width:80px">结果</th><th>说明</th></tr>${staticHtml}</table>
+    </div>
+    <div class="panel"><div class="panel-title">② 动态模拟（AI 标准策略：集火血量最低目标，治疗阈值 50%/80%，低血量防御）</div>
+      <table class="sim"><tr><th>章</th><th>难度</th><th>普通战</th><th>精英战</th><th>Boss战</th><th>章节评级</th></tr>${simRows}</table>
+      <div class="muted mt8">每格显示：胜率 + 平均回合·平均存活（队伍按章节人数曲线 1→2→3→4→4；队友按招募规则=基础×难度×E×3级特性，不含商店/奇遇强化，为保守下界）</div>
+    </div>
+    <div class="panel"><div class="panel-title">③ 结论</div>
+      ${r.pass
+        ? '<div class="ok">✅ 数值闭环验证通过：静态断言全部通过，1~5章无「过难」组。</div>'
+        : '<div class="bad">⚠️ 存在问题：' + esc(concl.join('；')) + '。建议核查对应章节数值曲线。</div>'}
+    </div>
+    <div class="center mt16"><button class="btn btn-gold" data-act="modal_close">关闭</button></div>
+  </div></div>`;
+}
+/* ---- 13.8 规格书13节：控制台可调 simulate(partySize, chapter, buildType) ----
+   参考 build（主角按8.1玩家期望曲线 PLAYER_GROWTH；第i名队友按招募规则=基础×E[i]）
+   × 合理玩家AI（simAct：集火低血、技能循环、治疗/防御）自动战斗100次，
+   输出平均回合数与血量损失，逐项对照规格书13节目标表。 */
+function simBuildParty(partySize, chapter, buildType){
+  const jobs = ['warrior','mage','tank','priest'];
+  const names = ['战士','法师','坦克','牧师'];
+  let atkK = 1, defK = 1, hpK = 1;
+  if(buildType==='偏输出'){ atkK = 1.20; defK = 0.90; hpK = 0.95; }
+  else if(buildType==='偏防御'){ defK = 1.20; atkK = 0.90; hpK = 1.05; }
+  return jobs.slice(0, Math.min(partySize,4)).map((job,i)=>{
+    const eMul = i===0 ? PLAYER_GROWTH[chapter-1] : E[i];  // 主角按8.1曲线；队友按招募规则（第i章Boss后入队，系数=E[i]）
+    const c = makeChar({ name: names[i], gender: i%2?'female':'male', job, diffMul:1.0, traitLv:0, eMul });
+    c.growth.atk *= atkK; c.growth.def *= defK; c.growth.hp *= hpK;
+    c.hp = maxHp(c);
+    if(c.job==='tank') c.shield = 0; else c.res = resMax(c);
+    return c;
+  });
+}
+function simulate(partySize, chapter, buildType){
+  partySize = clamp(Math.floor(partySize||1), 1, 4);
+  chapter   = clamp(Math.floor(chapter||1), 1, 5);
+  buildType = buildType || '均衡';
+  const ROUNDS = 100;
+  const TARGET = {   // 规格书13节目标表：目标区间 + 容差（回合/血量损失）
+    battle: { tLo:2,  tHi:3,  tTol:1, hPct:0.12, hTol:0.05 },
+    elite:  { tLo:4,  tHi:5,  tTol:1, hPct:0.25, hTol:0.08 },
+    boss:   { tLo:7,  tHi:9,  tTol:2, hPct:0.45, hTol:0.10 }
+  };
+  const savedSeed = _seed, savedS = _s, savedBattle = battle;
+  const party = simBuildParty(partySize, chapter, buildType);
+  const out = { partySize, chapter, buildType, rounds: ROUNDS, battles: {} };
+  try{
+    srand(SIM_SEED + partySize*10000 + chapter*100 + (buildType==='偏输出'?1:buildType==='偏防御'?2:0));
+    for(const type of SIM_TYPES){
+      let win=0, turns=0, hpLoss=0;
+      for(let i=0;i<ROUNDS;i++){
+        const r = simBattle(chapter, type, simCloneParty(party));   // 合理玩家AI（simAct）
+        if(r.victory){ win++; turns += r.turns; hpLoss += (1 - r.hpPct); }
+      }
+      const avgTurns  = win ? turns/win : 0;
+      const avgHpLoss = win ? hpLoss/win : 1;
+      const tgt = TARGET[type];
+      out.battles[type] = {
+        winRate: +(win/ROUNDS).toFixed(3),
+        avgTurns: +avgTurns.toFixed(2),
+        avgHpLoss: +(avgHpLoss*100).toFixed(1)+'%',
+        turnsTarget: tgt.tLo+'~'+tgt.tHi+'（±'+tgt.tTol+'）',
+        hpLossTarget: Math.round((tgt.hPct-tgt.hTol)*100)+'%~'+Math.round((tgt.hPct+tgt.hTol)*100)+'%',
+        pass: avgTurns>=(tgt.tLo-tgt.tTol) && avgTurns<=(tgt.tHi+tgt.tTol)
+              && avgHpLoss>=(tgt.hPct-tgt.hTol) && avgHpLoss<=(tgt.hPct+tgt.hTol)
+      };
+    }
+  } finally { _seed = savedSeed; _s = savedS; battle = savedBattle; }
+  out.pass = Object.keys(out.battles).every(k=>out.battles[k].pass);
+  try{ console.table(Object.values(out.battles)); }catch(e){}
+  return out;
+}
+function simulateAll(){                // 规格书13节：partySize 1~4 × chapter 1~5 全部20组
+  const savedSeed = _seed, savedS = _s, savedBattle = battle;
+  const rows = [];
+  try{
+    for(let ps=1; ps<=4; ps++)
+      for(let ch=1; ch<=5; ch++)
+        rows.push(simulate(ps, ch, '均衡'));
+  } finally { _seed = savedSeed; _s = savedS; battle = savedBattle; }
+  console.log('20组自检完成，通过组数：'+rows.filter(r=>r.pass).length+'/'+rows.length);
+  return rows;
+}
+/*==APPEND==*/
+
+/* ================= 27. 启动入口 ================= */
+go('menu');   // 页面加载即渲染主菜单
+</script>
+</body>
+</html>
