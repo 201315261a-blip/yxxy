@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>2048</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+body{background:#faf8ef;font-family:'Arial','Microsoft YaHei',sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;touch-action:none}
+#wrap{width:100%;max-width:420px;padding:16px}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+h1{color:#776e65;font-size:38px;font-weight:bold}
+.scoreBox{background:#bbada0;color:#fff;border-radius:6px;padding:6px 14px;text-align:center;min-width:76px}
+.scoreBox .label{font-size:12px;color:#eee4da}
+.scoreBox .val{font-size:22px;font-weight:bold}
+#board{background:#bbada0;border-radius:10px;padding:10px;position:relative;touch-action:none}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,1fr);gap:10px;aspect-ratio:1}
+.cell{background:#cdc1b4;border-radius:6px;display:flex;justify-content:center;align-items:center;font-size:34px;font-weight:bold;color:#776e65;transition:transform .12s}
+.cell.pop{animation:pop .18s ease}
+@keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+.cell[data-v="2"]{background:#eee4da;color:#776e65}
+.cell[data-v="4"]{background:#ede0c8;color:#776e65}
+.cell[data-v="8"]{background:#f2b179;color:#f9f6f2}
+.cell[data-v="16"]{background:#f59563;color:#f9f6f2}
+.cell[data-v="32"]{background:#f67c5f;color:#f9f6f2}
+.cell[data-v="64"]{background:#f65e3b;color:#f9f6f2}
+.cell[data-v="128"]{background:#edcf72;color:#f9f6f2;font-size:28px}
+.cell[data-v="256"]{background:#edcc61;color:#f9f6f2;font-size:28px}
+.cell[data-v="512"]{background:#edc850;color:#f9f6f2;font-size:28px}
+.cell[data-v="1024"]{background:#edc53f;color:#f9f6f2;font-size:22px}
+.cell[data-v="2048"]{background:#edc22e;color:#f9f6f2;font-size:22px;box-shadow:0 0 20px rgba(237,194,46,.6)}
+#overlay{position:absolute;inset:0;background:rgba(238,228,218,.75);border-radius:10px;display:none;justify-content:center;align-items:center;flex-direction:column;gap:14px;z-index:5;text-align:center}
+#overlay.show{display:flex}
+#overlay h2{font-size:44px;color:#776e65}
+#overlay p{font-size:18px;color:#776e65}
+button{background:#8f7a66;color:#f9f6f2;border:none;border-radius:6px;padding:12px 28px;font-size:18px;cursor:pointer;touch-action:manipulation}
+button:active{transform:scale(.95)}
+.hint{color:#776e65;font-size:14px;text-align:center;margin-top:12px}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <header>
+    <h1>2048</h1>
+    <div class="scoreBox"><div class="label">得分</div><div class="val" id="score">0</div></div>
+  </header>
+  <div id="board">
+    <div class="grid" id="grid"></div>
+    <div id="overlay">
+      <h2 id="ovTitle">游戏结束</h2>
+      <p id="ovMsg">再来一局？</p>
+      <button onclick="restart()">重新开始</button>
+    </div>
+  </div>
+  <div class="hint">👆 滑动屏幕移动方块，相同数字合并 | 电脑可用方向键</div>
+</div>
+<script>
+const SIZE=4;
+let board, score, won, over;
+const gridEl=document.getElementById('grid');
+const scoreEl=document.getElementById('score');
+const overlay=document.getElementById('overlay');
+const ovTitle=document.getElementById('ovTitle');
+const ovMsg=document.getElementById('ovMsg');
+
+function init(){
+  board=Array.from({length:SIZE},()=>Array(SIZE).fill(0));
+  score=0; won=false; over=false;
+  overlay.classList.remove('show');
+  updateScore();
+  addTile(); addTile();
+  render();
+}
+function addTile(){
+  let empty=[];
+  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++)if(board[r][c]===0)empty.push([r,c]);
+  if(!empty.length)return;
+  let [r,c]=empty[Math.floor(Math.random()*empty.length)];
+  board[r][c]=Math.random()<0.9?2:4;
+}
+function updateScore(){scoreEl.textContent=score;}
+
+// 压缩一行（去掉0），返回 {row, merged}
+function mergeLine(line){
+  let arr=line.filter(v=>v!==0);
+  let out=[], gained=0, mergedIdx=[];
+  for(let i=0;i<arr.length;i++){
+    if(i+1<arr.length&&arr[i]===arr[i+1]){
+      out.push(arr[i]*2); gained+=arr[i]*2; mergedIdx.push(out.length-1); i++;
+    }else{
+      out.push(arr[i]);
+    }
+  }
+  while(out.length<SIZE)out.push(0);
+  return {out,gained,mergedIdx};
+}
+
+function move(dir){
+  if(over||won)return false;
+  let moved=false;
+  let mergedCells=[];
+  let newBoard=Array.from({length:SIZE},()=>Array(SIZE).fill(0));
+  for(let i=0;i<SIZE;i++){
+    // 提取行或列
+    let line=[];
+    for(let j=0;j<SIZE;j++){
+      line.push(dir==='left'?board[i][j]:dir==='right'?board[i][SIZE-1-j]:dir==='up'?board[j][i]:board[SIZE-1-j][i]);
+    }
+    let res=mergeLine(line);
+    score+=res.gained;
+    for(let j=0;j<SIZE;j++){
+      let r,c;
+      if(dir==='left'){r=i;c=j;}
+      else if(dir==='right'){r=i;c=SIZE-1-j;}
+      else if(dir==='up'){r=j;c=i;}
+      else{r=SIZE-1-j;c=i;}
+      newBoard[r][c]=res.out[j];
+      if(res.out[j]!==0&&(board[i][j]!==res.out[j]||res.mergedIdx.includes(j)))moved=true;
+    }
+  }
+  if(moved){
+    board=newBoard;
+    updateScore();
+    addTile();
+    render();
+    checkEnd();
+  }
+  return moved;
+}
+
+function checkEnd(){
+  // 检查2048
+  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+    if(board[r][c]===2048&&!won){
+      won=true;
+      ovTitle.textContent='🎉 你赢了！';
+      ovMsg.textContent='继续滑动可以挑战更高分';
+      overlay.classList.add('show');
+      return;
+    }
+  }
+  // 检查是否还能移动
+  let canMove=false;
+  for(let r=0;r<SIZE;r++)for(let c=0;c<SIZE;c++){
+    if(board[r][c]===0){canMove=true;break;}
+    if(c+1<SIZE&&board[r][c]===board[r][c+1])canMove=true;
+    if(r+1<SIZE&&board[r][c]===board[r+1][c])canMove=true;
+  }
+  if(!canMove){
+    over=true;
+    ovTitle.textContent='💀 游戏结束';
+    ovMsg.textContent='得分：'+score;
+    overlay.classList.add('show');
+  }
+}
+
+function render(){
+  gridEl.innerHTML='';
+  for(let r=0;r<SIZE;r++){
+    for(let c=0;c<SIZE;c++){
+      let cell=document.createElement('div');
+      cell.className='cell';
+      let v=board[r][c];
+      if(v!==0){
+        cell.textContent=v;
+        cell.setAttribute('data-v',v);
+        if(v>=128)cell.style.fontSize='24px';
+        if(v>=1024)cell.style.fontSize='18px';
+      }
+      gridEl.appendChild(cell);
+    }
+  }
+}
+
+// 触摸滑动
+let sx=0,sy=0,swiping=false;
+const boardEl=document.getElementById('board');
+boardEl.addEventListener('touchstart',e=>{
+  sx=e.touches[0].clientX; sy=e.touches[0].clientY; swiping=true;
+},{passive:true});
+boardEl.addEventListener('touchmove',e=>{e.preventDefault();},{passive:false});
+boardEl.addEventListener('touchend',e=>{
+  if(!swiping)return;
+  swiping=false;
+  let dx=e.changedTouches[0].clientX-sx;
+  let dy=e.changedTouches[0].clientY-sy;
+  if(Math.abs(dx)<20&&Math.abs(dy)<20)return;
+  if(Math.abs(dx)>Math.abs(dy)){
+    move(dx>0?'right':'left');
+  }else{
+    move(dy>0?'down':'up');
+  }
+},{passive:true});
+
+// 键盘
+document.addEventListener('keydown',e=>{
+  const map={ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down'};
+  if(map[e.key]){e.preventDefault();move(map[e.key]);}
+});
+
+function restart(){init();}
+
+init();
+</script>
+</body>
+</html>
