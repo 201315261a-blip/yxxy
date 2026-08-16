@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我能制作的格式全景对比 · 手机兼容指南</title>
+<style>
+  :root{
+    --bg:#0f172a; --card:#1e293b; --line:#334155;
+    --txt:#e2e8f0; --sub:#94a3b8;
+    --green:#22c55e; --blue:#3b82f6; --amber:#f59e0b; --red:#ef4444;
+    --html:#4f46e5; --other:#0ea5e9;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--txt); line-height:1.7;
+    -webkit-tap-highlight-color:transparent;
+  }
+  header{
+    padding:40px 18px 30px; text-align:center;
+    background:linear-gradient(135deg,#312e81,#0ea5e9);
+  }
+  header h1{font-size:1.7rem; margin-bottom:8px}
+  header p{color:#dbeafe; font-size:.95rem}
+  .wrap{max-width:800px; margin:0 auto; padding:20px 14px 60px}
+
+  .section-title{
+    display:flex; align-items:center; gap:10px;
+    font-size:1.2rem; margin:34px 0 16px; color:#fff;
+  }
+  .section-title::before{content:""; width:6px; height:22px; border-radius:3px; background:var(--blue)}
+
+  /* 问答卡片 */
+  .qa{background:var(--card); border:1px solid var(--line); border-radius:14px; margin-bottom:14px; overflow:hidden}
+  .qa summary{
+    padding:16px 18px; cursor:pointer; font-weight:600; list-style:none;
+    display:flex; align-items:center; gap:12px; position:relative;
+    transition:background .2s;
+  }
+  .qa summary:hover{background:#263449}
+  .qa summary::-webkit-details-marker{display:none}
+  .qa .q-num{
+    width:30px;height:30px;min-width:30px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:.85rem; color:#fff; font-weight:700;
+  }
+  .qa .txt{flex:1}
+  .qa .arrow{margin-left:auto; color:var(--sub); transition:transform .25s}
+  .qa[open] .arrow{transform:rotate(90deg)}
+  .qa-body{padding:2px 18px 18px; color:#cbd5e1; border-top:1px dashed var(--line); margin-top:14px}
+
+  /* 徽章 */
+  .badge{display:inline-block; padding:1px 10px; border-radius:99px; font-size:.75rem; margin-right:6px; margin-bottom:4px; white-space:nowrap}
+  .b-green{background:rgba(34,197,94,.15); color:#4ade80; border:1px solid rgba(34,197,94,.4)}
+  .b-blue{background:rgba(59,130,246,.15); color:#60a5fa; border:1px solid rgba(59,130,246,.4)}
+  .b-amber{background:rgba(245,158,11,.15); color:#fbbf24; border:1px solid rgba(245,158,11,.4)}
+
+  /* 表格 */
+  table{width:100%; border-collapse:collapse; margin:8px 0; font-size:.88rem}
+  th,td{text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{color:#fff; background:#263449; font-size:.85rem}
+  tr:last-child td{border-bottom:none}
+  td:first-child{font-weight:600; white-space:nowrap}
+  .ok{color:var(--green); font-weight:600}
+  .no{color:var(--red)}
+
+  /* 高亮建议 */
+  .callout{
+    border-left:4px solid var(--amber); background:rgba(245,158,11,.08);
+    padding:12px 16px; border-radius:8px; margin:14px 0; font-size:.92rem;
+  }
+  .callout.green{border-color:var(--green); background:rgba(34,197,94,.08)}
+  .callout.blue{border-color:var(--blue); background:rgba(59,130,246,.08)}
+
+  ul{padding-left:20px}
+  li{margin:6px 0}
+
+  footer{text-align:center; color:var(--sub); font-size:.8rem; padding-top:30px; border-top:1px solid var(--line); margin-top:40px}
+
+  @media(max-width:480px){
+    header h1{font-size:1.4rem}
+    .wrap{padding:14px 10px 50px}
+    td,th{padding:8px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>📄 我「能制作」的格式全景对比</h1>
+  <p>哪些既我能做、又能在手机上舒服打开？一份面向你的问答式总结</p>
+</header>
+
+<div class="wrap">
+
+  <div class="callout green">
+    <strong>一句话结论：</strong>所有 <strong>HTML 类型</strong>（16 类）和 <strong>纯文本类格式</strong>（MD/JSON/TXT/SVG/CSV/脚本）我都<strong>能直接生成</strong>，且<strong>手机内置工具即可打开</strong>；PDF 与图片类借助转换工具也能产出。HTML 是唯一同时承载「排版 + 样式 + 交互 + 多媒体」的富格式。
+  </div>
+
+  <!-- ==================== 第一板块 ==================== -->
+  <h2 class="section-title" style="--blue:var(--html)">一、我能制作的 HTML 类型（16 类）</h2>
+
+  <details class="qa" open>
+    <summary>
+      <span class="q-num" style="background:var(--html)">Q1</span>
+      <span class="txt">你到底能制作哪些 HTML？手机都能打开吗？</span>
+      <span class="arrow">▶</span>
+    </summary>
+    <div class="qa-body">
+      <p>以下全部为 <strong>纯 HTML/CSS/JS 静态文件</strong>，生成后既可在电脑浏览器打开，也可<strong>直接拷到手机浏览器/文件管理器点击即用</strong>，无需服务器、无需安装任何 App：</p>
+      <table>
+        <tr><th>#</th><th>类型</th><th>典型示例</th></tr>
+        <tr><td>1</td><td>静态网页</td><td>个人主页、企业官网、落地页、博客文章</td></tr>
+        <tr><td>2</td><td>单页应用 SPA</td><td>单页作品集、单页简历、标签切换工具</td></tr>
+        <tr><td>3</td><td>响应式网页</td><td>移动优先官网、自适应导航、杂志排版</td></tr>
+        <tr><td>4</td><td>交互表单页</td><td>联系表单、报名表、问卷、登录/计算器表单</td></tr>
+        <tr><td>5</td><td>导航与下拉菜单</td><td>多级导航、手机汉堡菜单、Mega Menu</td></tr>
+        <tr><td>6</td><td>轮播图/幻灯片</td><td>产品轮播、相册轮播、Banner 轮播</td></tr>
+        <tr><td>7</td><td>模态框/弹窗</td><td>图片灯箱、自定义弹窗、确认对话框</td></tr>
+        <tr><td>8</td><td>动画特效页</td><td>CSS 动画登录页、粒子背景、悬浮卡片、滚动渐入</td></tr>
+        <tr><td>9</td><td>Canvas 动画/绘图</td><td>粒子系统、烟花、动态背景、像素画工具</td></tr>
+        <tr><td>10</td><td>数据可视化页</td><td>折线/柱状/饼图、仪表盘（Chart.js/ECharts）</td></tr>
+        <tr><td>11</td><td>游戏类 H5</td><td>贪吃蛇、2048、扫雷、转盘抽奖、猜数字</td></tr>
+        <tr><td>12</td><td>富文本/文档页</td><td>使用说明、帮助文档、简历/合同排版、Markdown 渲染</td></tr>
+        <tr><td>13</td><td>音视频播放页</td><td>音乐播放器、视频播放、播客页（audio/video）</td></tr>
+        <tr><td>14</td><td>多媒体/画廊页</td><td>照片画廊、作品集、瀑布流布局</td></tr>
+        <tr><td>15</td><td>实用工具页</td><td>单位换算、颜色选择器、密码生成器、番茄钟</td></tr>
+        <tr><td>16</td><td>地图/位置页</td><td>iframe 嵌入高德/百度地图的商家位置页</td></tr>
+      </table>
+      <div class="callout blue">
+        <strong>备注：</strong>复杂视频剪辑、需登录的后台系统、实时多人交互需引入额外服务；复杂 3D（WebGL/Three.js）可实现但复杂度较高，简单 2D 小游戏常规可完成。
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>
+      <span class="q-num" style="background:var(--html)">Q2</span>
+      <span class="txt">哪些 HTML 在手机上体验最好？</span>
+      <span class="arrow">▶</span>
+    </summary>
+    <div class="qa-body">
+      <p>按「手机体验 + 我可制作」优先排序：</p>
+      <ol>
+        <li><strong>响应式单文件网页</strong>——最通用、体验佳、易传播</li>
+        <li><strong>H5 小游戏</strong>——Canvas 单文件，已有实战经验（如植物大战僵尸单机版、纯文字 RPG）</li>
+        <li><strong>SPA / PWA 工具应用</strong>——界面友好，类原生</li>
+        <li><strong>富交互数据页</strong>——表单、图表、绘画板</li>
+      </ol>
+      <div class="callout">
+        📌 实战经验：已成功制作过《植物大战僵尸》单机版（5 行草坪 + 阳光系统 + 15 波战役）、《异世界冒险：零号协议》RPG 等单文件 H5，均<strong>适配横屏 + 触控 + 纯代码图形 + 不依赖外部资源</strong>。
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>
+      <span class="q-num" style="background:var(--html)">Q3</span>
+      <span class="txt">HTML 在手机上打开的注意点？</span>
+      <span class="arrow">▶</span>
+    </summary>
+    <div class="qa-body">
+      <ul>
+        <li>必须声明 <code>&lt;meta charset="UTF-8"&gt;</code> 避免中文乱码</li>
+        <li>必须加 <code>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;</code> 视口适配</li>
+        <li>用相对路径，不固定像素宽，用百分比/rem/vw/vh 弹性布局</li>
+        <li>优先触控事件，避免依赖 hover/悬停，热区 ≥ 44×44px 防误触</li>
+        <li>离线场景应内联 CSS/JS 与图片（base64）为单文件</li>
+      </ul>
+    </div>
+  </details>
+
+  <!-- ==================== 第二板块 ==================== -->
+  <h2 class="section-title">二、除 HTML 外，手机可打开且我能制作的格式</h2>
+
+  <details class="qa" open>
+    <summary>
+      <span class="q-num" style="background:var(--other)">Q4</span>
+      <span class="txt">还有哪些非 HTML 格式也行？（表格总览）</span>
+      <span class="arrow">▶</span>
+    </summary>
+    <div class="qa-body">
+      <table>
+        <tr><th>格式</th><th>手机打开</th><th>我能制作</th><th>打开应用</th><th>典型用途</th></tr>
+        <tr><td>Markdown .md</td><td class="ok">✅</td><td class="ok">✅ 零依赖</td><td>笔记/文本编辑器</td><td>笔记、文档、README</td></tr>
+        <tr><td>JSON .json</td><td class="ok">✅</td><td class="ok">✅ 按 Schema</td><td>文本编辑器/JSON查看器/浏览器</td><td>配置、存档、数据交换</td></tr>
+        <tr><td>PDF .pdf</td><td class="ok">✅</td><td class="ok">✅ 用转换工具</td><td>WPS、Adobe、微信内</td><td>报告、合同、简历、宣传单</td></tr>
+        <tr><td>TXT .txt</td><td class="ok">✅</td><td class="ok">✅</td><td>一切文本应用</td><td>代码、临时笔记、清单</td></tr>
+        <tr><td>SVG .svg</td><td class="ok">✅</td><td class="ok">✅ 直接编写</td><td>浏览器、Inkscape</td><td>Logo、图标、流程图、可视化</td></tr>
+        <tr><td>脚本 .js/.py</td><td class="ok">✅ 查看</td><td class="ok">✅</td><td>代码编辑器、Termux</td><td>自动化、数据处理、工具</td></tr>
+        <tr><td>CSV .csv</td><td class="ok">✅</td><td class="ok">✅</td><td>Excel/WPS/Numbers</td><td>表格数据、导入导出、统计</td></tr>
+        <tr><td>图片 png/jpg/webp/gif</td><td class="ok">✅</td><td class="ok">✅ 转换工具</td><td>相册、浏览器、微信</td><td>图表、流程图、示意图</td></tr>
+        <tr><td>播放列表 .m3u</td><td class="ok">✅</td><td class="ok">✅</td><td>VLC、MX Player</td><td>播放清单、资源汇总</td></tr>
+      </table>
+      <div class="callout">
+        ⚠️ 脚本文件手机直接点开按文本显示，<strong>执行需装解释器环境</strong>（如 Termux）。PDF、图片类需借助 file_converter 转换工具产出。<strong>音视频本体文件我无法直接生成</strong>，但可制作承载其引用的 HTML/Markdown 页面或 .m3u 播放列表。
+      </div>
+    </div>
+  </details>
+
+  <details class="qa">
+    <summary>
+      <span class="q-num" style="background:var(--other)">Q5</span>
+      <span class="txt">不同场景该选哪种格式？</span>
+      <span class="arrow">▶</span>
+    </summary>
+    <div class="qa-body">
+      <table>
+        <tr><th>场景</th><th>推荐格式</th></tr>
+        <tr><td>阅读型文档</td><td>PDF 或 Markdown</td></tr>
+        <tr><td>数据交换</td><td>JSON 或 CSV</td></tr>
+        <tr><td>图形展示</td><td>SVG 或 PNG</td></tr>
+        <tr><td>代码/脚本分享</td><td>.js/.py/纯文本</td></tr>
+        <tr><td>极简笔记</td><td>TXT</td></tr>
+        <tr><td>富展示 / 交互 / 游戏</td><td>HTML（唯一富格式）</td></tr>
+      </table>
+    </div>
+  </details>
+
+  <!-- ==================== 第三板块 ==================== -->
+  <h2 class="section-title">三、核心结论速览</h2>
+
+  <div class="callout blue" style="margin-top:10px">
+    <strong>最值得关注的回答：</strong><br>
+    ▸ <strong>HTML 优势</strong>：唯一能同时承载排版 + 样式 + 交互 + 多媒体 + 游戏，手机体验最优。<br>
+    ▸ <strong>可直接生成且有手机体验</strong>：16 类 HTML + MD / JSON / TXT / SVG / CSV / 脚本（零依赖，天然可精确产出）。<br>
+    ▸ <strong>需借工具转换再生成</strong>：PDF、PNG/JPG 等图片格式。<br>
+    ▸ <strong>无法直接生成</strong>：音视频本体文件（仅能生成承载引用的页面/播放列表）。
+  </div>
+
+  <div class="callout" style="margin-top:14px">
+    💡 <strong>行动建议：</strong>无论你想了解或制作哪一种，直接告诉我<strong>目标类型 + 用途 + 手机适配偏好</strong>（横屏/竖屏/触控），即可立刻生成对应 HTML 或文档文件。
+  </div>
+
+  <footer>
+    本页面由 AI 根据综合能力梳理生成 · 关闭网络也可正常查看（全内联）<br>
+    已适配手机屏 · 触控友好
+  </footer>
+
+</div>
+</body>
+</html>
