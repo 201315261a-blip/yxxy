@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>多功能工具箱</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    min-height: 100vh;
+    color: #fff;
+    padding-bottom: 30px;
+  }
+  .header {
+    text-align: center;
+    padding: 22px 16px 14px;
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(4px);
+  }
+  .header h1 { font-size: 20px; font-weight: 600; letter-spacing: 2px; }
+  .header p { font-size: 12px; opacity: 0.75; margin-top: 4px; }
+  .tabs {
+    display: flex;
+    overflow-x: auto;
+    padding: 10px 12px;
+    gap: 8px;
+    background: rgba(0,0,0,0.15);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .tab {
+    flex: 0 0 auto;
+    padding: 8px 16px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.12);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all .2s;
+    white-space: nowrap;
+  }
+  .tab.active { background: #ffd54f; color: #1e3c72; font-weight: 600; }
+  .panel { display: none; padding: 16px; }
+  .panel.active { display: block; }
+  .card {
+    background: rgba(255,255,255,0.1);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 14px;
+    backdrop-filter: blur(2px);
+  }
+  .card h2 { font-size: 16px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .card h2 .icon { font-size: 18px; }
+  input, select, button {
+    font-size: 15px;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 12px;
+    outline: none;
+  }
+  input, select {
+    background: rgba(255,255,255,0.92);
+    color: #222;
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  button {
+    background: #ffd54f;
+    color: #1e3c72;
+    font-weight: 600;
+    cursor: pointer;
+    margin: 4px;
+  }
+  button:active { transform: scale(0.96); }
+  .btn-row { display: flex; gap: 8px; }
+  .btn-row button { flex: 1; }
+  .clock-display {
+    text-align: center;
+    padding: 26px 10px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 14px;
+    margin-bottom: 14px;
+  }
+  #clockTime { font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  #clockDate { font-size: 15px; opacity: 0.85; margin-top: 6px; }
+  .calc-display {
+    background: rgba(0,0,0,0.35);
+    border-radius: 12px;
+    padding: 14px;
+    text-align: right;
+    margin-bottom: 12px;
+    min-height: 76px;
+  }
+  #calcExpr { font-size: 15px; opacity: 0.7; min-height: 20px; word-break: break-all; }
+  #calcResult { font-size: 30px; font-weight: 700; margin-top: 4px; word-break: break-all; }
+  .calc-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .calc-grid button {
+    margin: 0;
+    padding: 14px 0;
+    font-size: 18px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+  }
+  .calc-grid button.op { background: #ffd54f; color: #1e3c72; font-weight: 700; }
+  .calc-grid button.eq { background: #4caf50; color: #fff; }
+  .calc-grid button.clr { background: #e53935; color: #fff; }
+  .todo-list { list-style: none; }
+  .todo-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,0.1);
+    padding: 12px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    font-size: 15px;
+  }
+  .todo-item.done span { text-decoration: line-through; opacity: 0.5; }
+  .todo-item span { flex: 1; }
+  .todo-item .del { background: #e53935; color: #fff; padding: 4px 10px; font-size: 13px; }
+  .result-box {
+    background: rgba(0,0,0,0.3);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+    font-size: 22px;
+    font-weight: 700;
+    margin-top: 10px;
+    min-height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .small { font-size: 12px; opacity: 0.7; margin-top: 8px; text-align: center; }
+  .stopwatch { text-align: center; }
+  #swDisplay { font-size: 40px; font-weight: 700; font-variant-numeric: tabular-nums; margin: 16px 0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🛠 多功能工具箱</h1>
+  <p>纯本地运行 · 无需网络 · 测试打包用</p>
+</div>
+
+<div class="tabs" id="tabs">
+  <div class="tab active" data-panel="clock">🕐 时钟</div>
+  <div class="tab" data-panel="calc">🧮 计算器</div>
+  <div class="tab" data-panel="todo">📝 待办</div>
+  <div class="tab" data-panel="random">🎲 随机</div>
+  <div class="tab" data-panel="convert">📏 换算</div>
+  <div class="tab" data-panel="stopwatch">⏱ 秒表</div>
+</div>
+
+<!-- 时钟 -->
+<div class="panel active" id="panel-clock">
+  <div class="clock-display">
+    <div id="clockTime">--:--:--</div>
+    <div id="clockDate">----年--月--日</div>
+  </div>
+  <div class="card">
+    <h2><span class="icon">ℹ️</span>说明</h2>
+    <p style="font-size:14px;line-height:1.7;opacity:0.9;">
+      当前页面所有功能均在本地运行，不请求任何外部网络。<br>
+      若打包后时钟能走动、各功能正常，说明 WebView 打包链路正常。
+    </p>
+  </div>
+</div>
+
+<!-- 计算器 -->
+<div class="panel" id="panel-calc">
+  <div class="card">
+    <h2><span class="icon">🧮</span>标准计算器</h2>
+    <div class="calc-display">
+      <div id="calcExpr"></div>
+      <div id="calcResult">0</div>
+    </div>
+    <div class="calc-grid">
+      <button class="clr" data-key="C">C</button>
+      <button data-key="(">(</button>
+      <button data-key=")">)</button>
+      <button class="op" data-key="/">÷</button>
+      <button data-key="7">7</button>
+      <button data-key="8">8</button>
+      <button data-key="9">9</button>
+      <button class="op" data-key="*">×</button>
+      <button data-key="4">4</button>
+      <button data-key="5">5</button>
+      <button data-key="6">6</button>
+      <button class="op" data-key="-">−</button>
+      <button data-key="1">1</button>
+      <button data-key="2">2</button>
+      <button data-key="3">3</button>
+      <button class="op" data-key="+">+</button>
+      <button data-key="0">0</button>
+      <button data-key=".">.</button>
+      <button class="clr" data-key="⌫">⌫</button>
+      <button class="eq" data-key="=">=</button>
+    </div>
+  </div>
+</div>
+
+<!-- 待办 -->
+<div class="panel" id="panel-todo">
+  <div class="card">
+    <h2><span class="icon">📝</span>待办事项</h2>
+    <div class="btn-row">
+      <input type="text" id="todoInput" placeholder="输入待办内容..." style="margin-bottom:0;">
+    </div>
+    <div style="margin-top:10px;">
+      <button id="addTodoBtn" style="width:100%;">➕ 添加</button>
+    </div>
+    <ul class="todo-list" id="todoList" style="margin-top:14px;"></ul>
+    <div class="small">数据保存在本地（localStorage），重启应用不丢失</div>
+  </div>
+</div>
+
+<!-- 随机 -->
+<div class="panel" id="panel-random">
+  <div class="card">
+    <h2><span class="icon">🎲</span>随机数生成</h2>
+    <div class="btn-row">
+      <input type="number" id="randMin" value="1" placeholder="最小值">
+      <input type="number" id="randMax" value="100" placeholder="最大值">
+    </div>
+    <button id="randBtn" style="width:100%;">🎲 生成随机数</button>
+    <div class="result-box" id="randResult">点击生成</div>
+  </div>
+  <div class="card">
+    <h2><span class="icon">🔑</span>随机密码</h2>
+    <button id="pwdBtn" style="width:100%;">🔑 生成12位随机密码</button>
+    <div class="result-box" id="pwdResult" style="font-size:16px;word-break:break-all;">点击生成</div>
+  </div>
+</div>
+
+<!-- 换算 -->
+<div class="panel" id="panel-convert">
+  <div class="card">
+    <h2><span class="icon">🌡</span>温度换算</h2>
+    <input type="number" id="tempInput" placeholder="输入数值" value="25">
+    <select id="tempType">
+      <option value="c2f">摄氏 → 华氏 (°C → °F)</option>
+      <option value="f2c">华氏 → 摄氏 (°F → °C)</option>
+    </select>
+    <button id="tempBtn" style="width:100%;">换算</button>
+    <div class="result-box" id="tempResult">25°C = 77°F</div>
+  </div>
+  <div class="card">
+    <h2><span class="icon">📐</span>长度换算</h2>
+    <input type="number" id="lenInput" placeholder="输入数值" value="1">
+    <select id="lenType">
+      <option value="km2m">千米 → 米 (km → m)</option>
+      <option value="m2km">米 → 千米 (m → km)</option>
+      <option value="inch2cm">英寸 → 厘米 (in → cm)</option>
+      <option value="cm2inch">厘米 → 英寸 (cm → in)</option>
+    </select>
+    <button id="lenBtn" style="width:100%;">换算</button>
+    <div class="result-box" id="lenResult">1 km = 1000 m</div>
+  </div>
+</div>
+
+<!-- 秒表 -->
+<div class="panel" id="panel-stopwatch">
+  <div class="card stopwatch">
+    <h2><span class="icon">⏱</span>秒表</h2>
+    <div id="swDisplay">00:00.0</div>
+    <div class="btn-row">
+      <button id="swStart">▶ 开始</button>
+      <button id="swReset">↺ 归零</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ========== 标签页切换 ========== */
+var tabs = document.getElementById('tabs');
+tabs.addEventListener('click', function(e){
+  var tab = e.target.closest('.tab');
+  if (!tab) return;
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  tab.classList.add('active');
+  document.getElementById('panel-' + tab.dataset.panel).classList.add('active');
+});
+
+/* ========== 时钟 ========== */
+function updateClock(){
+  var now = new Date();
+  var h = String(now.getHours()).padStart(2,'0');
+  var m = String(now.getMinutes()).padStart(2,'0');
+  var s = String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('clockTime').textContent = h + ':' + m + ':' + s;
+  var week = ['日','一','二','三','四','五','六'][now.getDay()];
+  document.getElementById('clockDate').textContent =
+    now.getFullYear() + '年' + (now.getMonth()+1) + '月' + now.getDate() + '日 星期' + week;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+/* ========== 计算器 ========== */
+var expr = '';
+function updateCalc(){
+  document.getElementById('calcExpr').textContent = expr;
+  try {
+    if (expr) {
+      var r = Function('"use strict";return (' + expr + ')')();
+      document.getElementById('calcResult').textContent = (Math.round(r*1e10)/1e10);
+    } else {
+      document.getElementById('calcResult').textContent = '0';
+    }
+  } catch(e) {
+    document.getElementById('calcResult').textContent = '表达式错误';
+  }
+}
+document.querySelectorAll('.calc-grid button').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    var k = btn.dataset.key;
+    if (k === 'C') { expr = ''; }
+    else if (k === '⌫') { expr = expr.slice(0, -1); }
+    else if (k === '=') {
+      try { expr = String(Function('"use strict";return (' + expr + ')')()); }
+      catch(e) { expr = ''; }
+    }
+    else { expr += k; }
+    updateCalc();
+  });
+});
+
+/* ========== 待办事项 ========== */
+var todos = [];
+try { todos = JSON.parse(localStorage.getItem('todos')) || []; } catch(e) { todos = []; }
+function renderTodos(){
+  var list = document.getElementById('todoList');
+  list.innerHTML = '';
+  todos.forEach(function(t, i){
+    var li = document.createElement('li');
+    li.className = 'todo-item' + (t.done ? ' done' : '');
+    li.innerHTML = '<input type="checkbox" ' + (t.done?'checked':'') + '>' +
+                   '<span>' + t.text + '</span>' +
+                   '<button class="del">删除</button>';
+    li.querySelector('input').addEventListener('change', function(){
+      todos[i].done = this.checked;
+      saveTodos(); renderTodos();
+    });
+    li.querySelector('.del').addEventListener('click', function(){
+      todos.splice(i, 1);
+      saveTodos(); renderTodos();
+    });
+    list.appendChild(li);
+  });
+}
+function saveTodos(){
+  try { localStorage.setItem('todos', JSON.stringify(todos)); } catch(e) {}
+}
+document.getElementById('addTodoBtn').addEventListener('click', function(){
+  var val = document.getElementById('todoInput').value.trim();
+  if (!val) return;
+  todos.push({ text: val, done: false });
+  saveTodos(); renderTodos();
+  document.getElementById('todoInput').value = '';
+});
+renderTodos();
+
+/* ========== 随机数 ========== */
+document.getElementById('randBtn').addEventListener('click', function(){
+  var min = parseInt(document.getElementById('randMin').value) || 1;
+  var max = parseInt(document.getElementById('randMax').value) || 100;
+  if (min > max) { var t = min; min = max; max = t; }
+  var r = Math.floor(Math.random() * (max - min + 1)) + min;
+  document.getElementById('randResult').textContent = r;
+});
+document.getElementById('pwdBtn').addEventListener('click', function(){
+  var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
+  var pwd = '';
+  for (var i = 0; i < 12; i++) pwd += chars[Math.floor(Math.random() * chars.length)];
+  document.getElementById('pwdResult').textContent = pwd;
+});
+
+/* ========== 温度换算 ========== */
+document.getElementById('tempBtn').addEventListener('click', function(){
+  var v = parseFloat(document.getElementById('tempInput').value);
+  if (isNaN(v)) return;
+  var type = document.getElementById('tempType').value;
+  var r, label;
+  if (type === 'c2f') { r = v * 9/5 + 32; label = v + '°C = ' + r + '°F'; }
+  else { r = (v - 32) * 5/9; label = v + '°F = ' + r + '°C'; }
+  document.getElementById('tempResult').textContent = label;
+});
+
+/* ========== 长度换算 ========== */
+document.getElementById('lenBtn').addEventListener('click', function(){
+  var v = parseFloat(document.getElementById('lenInput').value);
+  if (isNaN(v)) return;
+  var type = document.getElementById('lenType').value;
+  var r, label;
+  switch(type){
+    case 'km2m': r = v*1000; label = v + ' km = ' + r + ' m'; break;
+    case 'm2km': r = v/1000; label = v + ' m = ' + r + ' km'; break;
+    case 'inch2cm': r = v*2.54; label = v + ' in = ' + r + ' cm'; break;
+    case 'cm2inch': r = v/2.54; label = v + ' cm = ' + r + ' in'; break;
+  }
+  document.getElementById('lenResult').textContent = label;
+});
+
+/* ========== 秒表 ========== */
+var swTimer = null, swStartTime = 0, swElapsed = 0, swRunning = false;
+function swUpdate(){
+  var ms = swElapsed + (Date.now() - swStartTime);
+  var min = Math.floor(ms/60000);
+  var sec = Math.floor((ms%60000)/1000);
+  var tenth = Math.floor((ms%1000)/100);
+  document.getElementById('swDisplay').textContent =
+    String(min).padStart(2,'0') + ':' + String(sec).padStart(2,'0') + '.' + tenth;
+}
+document.getElementById('swStart').addEventListener('click', function(){
+  if (!swRunning) {
+    swRunning = true;
+    swStartTime = Date.now();
+    swTimer = setInterval(swUpdate, 100);
+    this.textContent = '⏸ 暂停';
+  } else {
+    swRunning = false;
+    swElapsed += Date.now() - swStartTime;
+    clearInterval(swTimer);
+    this.textContent = '▶ 继续';
+  }
+});
+document.getElementById('swReset').addEventListener('click', function(){
+  swRunning = false;
+  clearInterval(swTimer);
+  swElapsed = 0;
+  document.getElementById('swDisplay').textContent = '00:00.0';
+  document.getElementById('swStart').textContent = '▶ 开始';
+});
+</script>
+</body>
+</html>
