@@ -1,0 +1,861 @@
+<!-- ================================================================
+  ██╗  ██╗███████╗██████╗  ██████╗     ██████╗ ██████╗  ██████╗ ████████╗ ██████╗  ██████╗ ██████╗ ██╗
+  ██║  ██║██╔════╝██╔══██╗██╔═══██╗    ██╔══██╗██╔══██╗██╔═══██╗╚══██╔══╝██╔═══██╗██╔════╝██╔═══██╗██║
+  ███████║█████╗  ██████╔╝██║   ██║    ██████╔╝██████╔╝██║   ██║   ██║   ██║   ██║██║     ██║   ██║██║
+  ██╔══██║██╔══╝  ██╔══██╗██║   ██║    ██╔══██╗██╔══██╗██║   ██║   ██║   ██║   ██║██║     ██║   ██║██║
+  ██║  ██║███████╗██║  ██║╚██████╔╝    ██████╔╝██║  ██║╚██████╔╝   ██║   ╚██████╔╝╚██████╗╚██████╔╝███████╗
+  ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝ ╚═════╝     ╚═════╝ ╚═╝  ╚═╝ ╚═════╝    ╚═╝    ╚═════╝  ╚═════╝ ╚═════╝ ╚══════╝
+  ================================================================
+  Engine  : 零号协议 · 异世界冒险 (Protocol Zero v1.0)
+  State   : 全状态驱动引擎 | 回合制战斗系统 | 动态商店经济
+  World   : 阿斯加德灰烬 | 初始森林 · 流浪者营地 · 遗迹入口
+  ================================================================ -->
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>异世界冒险：零号协议</title>
+<style>
+/* ========== 复古终端全局 ========== */
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0f0a;color:#00dd88;font-family:'Consolas','Courier New','Menlo',monospace;min-height:100vh;padding:10px;font-size:14px;line-height:1.5}
+#app{display:flex;flex-direction:column;height:calc(100vh - 20px);max-width:1200px;margin:0 auto;gap:8px}
+
+/* 顶部标题 */
+.header{border-bottom:1px solid #003d1f;padding-bottom:6px;margin-bottom:2px;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap}
+.header h1{font-size:16px;color:#00ff88;text-shadow:0 0 12px rgba(0,255,136,0.3);letter-spacing:2px}
+.header .sub{font-size:11px;color:#005f2f;letter-spacing:1px}
+
+/* 主布局: 左叙事后面板 */
+.main{display:flex;flex:1;gap:8px;min-height:0}
+.left{flex:1;display:flex;flex-direction:column;min-width:0}
+.right{width:260px;display:flex;flex-direction:column;gap:4px;flex-shrink:0;max-height:calc(100vh - 140px);overflow-y:auto}
+
+/* 叙事/日志（压缩：小字、限高，给操作区让位） */
+#story{
+  flex:0 1 auto;background:#0a120a;border:1px solid #003d1f;border-radius:4px;padding:6px 10px;
+  overflow-y:auto;font-size:12px;line-height:1.5;scroll-behavior:smooth;
+  word-wrap:break-word;white-space:pre-wrap;max-height:40vh;min-height:70px;
+}
+#story::-webkit-scrollbar{width:4px}
+#story::-webkit-scrollbar-track{background:#0a120a}
+#story::-webkit-scrollbar-thumb{background:#003d1f;border-radius:2px}
+.story-line{opacity:0;animation:fadeIn 0.3s ease forwards;margin-bottom:2px}
+.story-line.system{color:#005f2f;font-size:11px}
+.story-line.combat{color:#ff8844}
+.story-line.good{color:#00ff88}
+.story-line.bad{color:#ff4444}
+.story-line.info{color:#66aaff}
+.story-line.loot{color:#ffcc00}
+.story-line.special{color:#cc88ff}
+@keyframes fadeIn{to{opacity:1}}
+
+/* 打字机效果 */
+.typewriter{overflow:hidden;border-right:2px solid #00dd88;white-space:pre-wrap;animation:blinkCursor 0.8s step-end infinite}
+@keyframes blinkCursor{50%{border-color:transparent}}
+
+/* 右侧面板 */
+.panel{background:#0a120a;border:1px solid #003d1f;border-radius:4px;padding:8px}
+.panel h3{font-size:11px;color:#005f2f;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px;border-bottom:1px solid #003d1f;padding-bottom:3px}
+
+/* HP/MP 条 */
+.bar-wrap{height:14px;background:#001a0a;border:1px solid #003d1f;border-radius:2px;margin:2px 0;position:relative;overflow:hidden}
+.bar-fill{height:100%;transition:width 0.5s ease;border-radius:1px}
+.bar-fill.hp{background:linear-gradient(90deg,#004422,#00cc66)}
+.bar-fill.mp{background:linear-gradient(90deg,#002244,#4488ff)}
+.bar-text{position:absolute;top:0;left:0;right:0;height:14px;line-height:14px;text-align:center;font-size:9px;color:#fff;mix-blend-mode:difference;letter-spacing:1px}
+
+/* 属性网格 */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;font-size:11px}
+.stat-grid .label{color:#005f2f}
+.stat-grid .val{text-align:right;color:#00dd88}
+
+/* 背包 */
+#inventory{font-size:11px;max-height:100px;overflow-y:auto;color:#00aa55}
+#inventory .empty{color:#003d1f;font-style:italic}
+#inventory::-webkit-scrollbar{width:3px}
+#inventory::-webkit-scrollbar-thumb{background:#003d1f}
+
+/* 装备位 */
+.equip-slot{display:flex;justify-content:space-between;font-size:11px;padding:2px 0;border-bottom:1px solid #001a0a}
+.equip-slot .slot{color:#005f2f}
+.equip-slot .item{color:#00dd88}
+.equip-slot .empty-slot{color:#003d1f;font-style:italic}
+
+/* 底部按钮（大按钮网格，占据显著空间） */
+#actions{
+  display:flex;flex-wrap:wrap;gap:6px;padding:6px 0 10px 0;min-height:60px;align-items:flex-start;
+  flex:1 1 auto;max-height:180px;overflow-y:auto;align-content:flex-start;
+}
+#actionsLabel{font-size:10px;color:#005f2f;text-transform:uppercase;letter-spacing:2px;padding:2px 0 0 0;display:block;width:100%}
+.act-btn{
+  background:#002a14;border:1px solid #004d28;color:#00dd88;font-family:inherit;
+  font-size:12px;font-weight:bold;padding:8px 16px;border-radius:5px;cursor:pointer;transition:all 0.12s;
+  letter-spacing:0.5px;flex:0 0 auto;min-width:80px;text-align:center;
+}
+.act-btn:hover{background:#00552e;border-color:#00ff88;color:#00ff88;text-shadow:0 0 8px rgba(0,255,136,0.3);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,255,136,0.1)}
+.act-btn:active{transform:translateY(0);box-shadow:none}
+.act-btn.pri{background:linear-gradient(135deg,#004d28,#006633);border-color:#00ff88;color:#00ff88}
+.act-btn.pri:hover{background:linear-gradient(135deg,#006633,#008844);box-shadow:0 4px 16px rgba(0,255,136,0.2)}
+.act-btn.dan{background:linear-gradient(135deg,#4d0000,#660000);border-color:#ff4444;color:#ff6666}
+.act-btn.dan:hover{background:linear-gradient(135deg,#660000,#880000);box-shadow:0 4px 16px rgba(255,68,68,0.2)}
+.act-btn.warn{background:linear-gradient(135deg,#4d3d00,#665200);border-color:#ffcc00;color:#ffcc00}
+.act-btn.warn:hover{background:linear-gradient(135deg,#665200,#887000);box-shadow:0 4px 16px rgba(255,204,0,0.2)}
+.act-btn.loot{background:linear-gradient(135deg,#2a004d,#3a0066);border-color:#cc88ff;color:#cc88ff}
+.act-btn.loot:hover{background:linear-gradient(135deg,#3a0066,#4d0088);box-shadow:0 4px 16px rgba(204,136,255,0.2)}
+.act-btn.disabled{opacity:0.25;pointer-events:none}
+
+/* 队友列表 */
+.ally-list{font-size:11px;max-height:72px;overflow-y:auto}
+.ally-item{color:#00aa55;padding:1px 0}
+.ally-item .hp{color:#ff8844;font-size:10px}
+
+/* 战斗日志区域（压缩） */
+#combatLog{max-height:60px;overflow-y:auto;font-size:10px;color:#88aa88;margin-top:2px;padding-top:2px;border-top:1px solid #003d1f}
+#combatLog::-webkit-scrollbar{width:3px}
+#combatLog::-webkit-scrollbar-thumb{background:#003d1f}
+
+/* 响应式 */
+@media(max-width:700px){
+  .right{width:100%;max-height:200px;max-height:none}
+  .main{flex-direction:column}
+  #story{min-height:60px;max-height:30vh}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <div>
+      <h1>⚔ 零号协议 · 异世界冒险</h1>
+      <div class="sub">「阿斯加德灰烬」 · 命运之轮已转动</div>
+    </div>
+    <div style="font-size:10px;color:#003d1f" id="gameTime"></div>
+  </div>
+
+  <div class="main">
+    <!-- 左侧：叙事/战斗 -->
+    <div class="left">
+      <div id="story"></div>
+      <div id="combatLog"></div>
+    </div>
+
+    <!-- 右侧：状态面板 -->
+    <div class="right">
+      <div class="panel">
+        <h3>🧑 角色状态</h3>
+        <div style="font-size:13px;font-weight:bold;color:#00ff88;margin-bottom:2px" id="charName">未命名</div>
+        <div class="bar-wrap"><div class="bar-fill hp" id="hpBar" style="width:100%"></div><div class="bar-text" id="hpText">HP: 100/100</div></div>
+        <div class="bar-wrap"><div class="bar-fill mp" id="mpBar" style="width:100%"></div><div class="bar-text" id="mpText">MP: 50/50</div></div>
+        <div class="stat-grid" style="margin-top:4px">
+          <span class="label">力量</span><span class="val" id="sStr">10</span>
+          <span class="label">敏捷</span><span class="val" id="sDex">10</span>
+          <span class="label">智力</span><span class="val" id="sInt">10</span>
+          <span class="label">等级</span><span class="val" id="sLv">1</span>
+          <span class="label">金币</span><span class="val" id="sGold">100</span>
+          <span class="label">地图</span><span class="val" id="sMap">初始森林</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>🛡 装备</h3>
+        <div class="equip-slot"><span class="slot">武器</span><span class="item" id="eqWeapon">无</span></div>
+        <div class="equip-slot"><span class="slot">防具</span><span class="item" id="eqArmor">无</span></div>
+        <div class="equip-slot"><span class="slot">饰品</span><span class="item" id="eqTrinket">无</span></div>
+      </div>
+
+      <div class="panel">
+        <h3>👥 队友</h3>
+        <div class="ally-list" id="allyList"><span class="empty" style="color:#003d1f">无</span></div>
+      </div>
+
+      <div class="panel">
+        <h3>🎒 背包</h3>
+        <div id="inventory"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部按钮 -->
+  <div id="actionsLabel">⚡ 行动指令</div>
+  <div id="actions"></div>
+</div>
+
+<script>
+// ================================================================
+//  零号协议 · 全状态驱动引擎
+//  战斗系统 | 动态商店经济 | 互动叙事 | 随机事件
+// ================================================================
+
+// ---- 物品数据库 ----
+const ITEMS = {
+  // 武器
+  w_rusty:    {id:'w_rusty',name:'生锈短剑',type:'weapon',atk:3,price:30,desc:'伤痕累累，但还能用'},
+  w_iron:     {id:'w_iron',name:'铁制长剑',type:'weapon',atk:6,price:80,desc:'标准的铁剑'},
+  w_steel:    {id:'w_steel',name:'精钢阔剑',type:'weapon',atk:10,price:200,desc:'寒光闪耀'},
+  w_flame:    {id:'w_flame',name:'烈焰之刃',type:'weapon',atk:15,price:500,desc:'剑身缠绕火焰',magic:5},
+  w_shadow:   {id:'w_shadow',name:'暗影匕首',type:'weapon',atk:9,price:280,desc:'淬毒的暗器',crit:10},
+  // 防具
+  a_leather:  {id:'a_leather',name:'皮甲',type:'armor',def:3,price:40,desc:'轻便灵活'},
+  a_chain:    {id:'a_chain',name:'锁子甲',type:'armor',def:6,price:120,desc:'防护力提升'},
+  a_plate:    {id:'a_plate',name:'板甲',type:'armor',def:10,price:350,desc:'沉重但坚固'},
+  a_magic:    {id:'a_magic',name:'法师长袍',type:'armor',def:2,price:150,desc:'含魔力符文',mdef:6},
+  // 饰品
+  t_ring:     {id:'t_ring',name:'力量指环',type:'trinket',str:3,price:200,desc:'+3 力量'},
+  t_amulet:   {id:'t_amulet',name:'敏捷护符',type:'trinket',dex:3,price:200,desc:'+3 敏捷'},
+  t_crystal:  {id:'t_crystal',name:'魔力水晶',type:'trinket',int:3,price:200,desc:'+3 智力'},
+  t_luck:     {id:'t_luck',name:'幸运硬币',type:'trinket',luck:1,price:300,desc:'微量增加运气'},
+  // 消耗品
+  p_hp:       {id:'p_hp',name:'生命药水·小',type:'potion',heal:30,price:15,desc:'恢复30 HP'},
+  p_hp_m:     {id:'p_hp_m',name:'生命药水·中',type:'potion',heal:70,price:40,desc:'恢复70 HP'},
+  p_mp:       {id:'p_mp',name:'魔力药水·小',type:'potion',mana:20,price:15,desc:'恢复20 MP'},
+  p_mp_m:     {id:'p_mp_m',name:'魔力药水·中',type:'potion',mana:50,price:40,desc:'恢复50 MP'},
+  p_full:     {id:'p_full',name:'活力药剂',type:'potion',heal:200,mana:100,price:200,desc:'完全恢复 HP & MP'},
+};
+
+// ---- 敌人数据库 ----
+const ENEMIES = {
+  slime:      {id:'slime',name:'史莱姆',hp:20,atk:3,def:1,dex:2,exp:5,gold:3,desc:'粘糊糊的绿色团块'},
+  wolf:       {id:'wolf',name:'森林狼',hp:30,atk:6,def:2,dex:8,exp:10,gold:5,desc:'露出獠牙的灰色野狼'},
+  goblin:     {id:'goblin',name:'哥布林',hp:25,atk:5,def:2,dex:6,exp:8,gold:4,desc:'手持木棍的绿皮小个子'},
+  bandit:     {id:'bandit',name:'流浪强盗',hp:40,atk:8,def:3,dex:7,exp:15,gold:12,desc:'蒙面的亡命之徒'},
+  skeleton:   {id:'skeleton',name:'骷髅兵',hp:35,atk:7,def:5,dex:4,exp:12,gold:6,desc:'持盾的亡灵战士'},
+  mage:       {id:'mage',name:'堕落法师',hp:50,atk:10,def:2,dex:5,exp:25,gold:18,desc:'黑暗能量的操控者',magic:8},
+  knight:     {id:'knight',name:'黑骑士',hp:70,atk:12,def:8,dex:6,exp:30,gold:25,desc:'被诅咒的精英骑士'},
+  boss:       {id:'boss',name:'遗迹守卫·零号',hp:150,atk:18,def:10,dex:8,exp:100,gold:80,desc:'[BOSS] 远古协议守护者'},
+};
+
+// ---- 地图数据 ----
+const MAPS = {
+  forest: {
+    name:'初始森林', desc:'茂密的古木遮天蔽日，空气中弥漫着潮湿的泥土气息。远处的鸟鸣声回荡在树冠间。',
+    enemies:['slime','wolf','goblin'], events:['chest','merchant','trap','hermit'],
+    shops:['forest_camp'], canTravel:['camp']
+  },
+  camp: {
+    name:'流浪者营地', desc:'几顶破旧的帐篷围成了一圈，篝火噼啪作响。营地的居民用警惕的目光打量着每一个陌生人。',
+    enemies:['goblin','bandit','skeleton'], events:['chest','merchant','storyteller'],
+    shops:['camp_shop','camp_blacksmith'], canTravel:['forest','ruins']
+  },
+  ruins: {
+    name:'遗迹入口', desc:'巨大的石门半掩在蔓藤之中，上面刻满了早已失传的符文。门缝中透出幽蓝色的光芒。',
+    enemies:['skeleton','mage','knight','boss'], events:['chest','trap','ancient_altar'],
+    shops:['ruins_shop'], canTravel:['camp']
+  }
+};
+
+// ---- 商店数据 ----
+const SHOPS = {
+  forest_camp: {
+    name:'流浪商贩', stock:['p_hp','p_mp','w_rusty','a_leather','t_ring'],
+    discount:0, greeting:'「旅人，买点什么保命吧？」'
+  },
+  camp_shop: {
+    name:'营地杂货铺', stock:['p_hp','p_hp_m','p_mp','p_mp_m','w_iron','a_chain','t_amulet','t_crystal'],
+    discount:0, greeting:'「欢迎光临，冒险者。」'
+  },
+  camp_blacksmith: {
+    name:'营地铁匠铺', stock:['w_steel','w_flame','a_plate','a_magic','t_luck'],
+    discount:0, greeting:'「好剑配好汉，来瞧瞧？」'
+  },
+  ruins_shop: {
+    name:'神秘商人', stock:['p_full','w_shadow','w_flame','a_magic','t_crystal','t_luck','p_hp_m','p_mp_m'],
+    discount:0, greeting:'「这些遗迹深处的宝物…你有资格拥有吗？」'
+  }
+};
+
+// ================================================================
+//  ███████  ████████  █████  ████████ ███████
+//  ██         ██    ██   ██    ██    ██
+//  ███████    ██    ███████    ██    █████
+//       ██    ██    ██   ██    ██    ██
+//  ███████    ██    ██   ██    ██    ███████
+// ================================================================
+const gameState = {
+  player: {
+    name:'旅者', str:8, dex:8, int:8, lv:1, exp:0, nextExp:30,
+    hp:100, maxHp:100, mp:50, maxMp:50,
+    gold:100, baseAtk:3, baseDef:2,
+    equipment:{weapon:null,armor:null,trinket:null},
+    inventory:['p_hp','p_hp_m','p_mp'],
+    allies:[], // {id, name, hp, maxHp, atk, def}
+    reputation:0, // 声望
+    flags:{} // 剧情标记
+  },
+  map:'forest',
+  turn:0,
+  inCombat:false,
+  inShop:false,
+  currentEnemy:null,
+  combatLog:[],
+  battleRound:0,
+  explored:new Set()
+};
+
+// ================================================================
+//  ██████   ██████  ███    ███
+//  ██   ██ ██    ██ ████  ████
+//  ██   ██ ██    ██ ██ ████ ██
+//  ██   ██ ██    ██ ██  ██  ██
+//  ██████   ██████  ██      ██
+// ================================================================
+function getDOM(id){return document.getElementById(id)}
+const dom = {
+  story: getDOM('story'),
+  combatLog: getDOM('combatLog'),
+  actions: getDOM('actions'),
+  hpBar: getDOM('hpBar'), hpText: getDOM('hpText'),
+  mpBar: getDOM('mpBar'), mpText: getDOM('mpText'),
+  sStr: getDOM('sStr'), sDex: getDOM('sDex'), sInt: getDOM('sInt'),
+  sLv: getDOM('sLv'), sGold: getDOM('sGold'), sMap: getDOM('sMap'),
+  charName: getDOM('charName'),
+  eqWeapon: getDOM('eqWeapon'), eqArmor: getDOM('eqArmor'), eqTrinket: getDOM('eqTrinket'),
+  inventory: getDOM('inventory'), allyList: getDOM('allyList'),
+  gameTime: getDOM('gameTime')
+};
+
+// ---- 工具函数 ----
+function rnd(min,max){return Math.floor(Math.random()*(max-min+1))+min}
+function rndF(min,max){return Math.random()*(max-min)+min}
+function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
+
+// ---- 获取物品对象 ----
+function getItem(id){return ITEMS[id]||null}
+function getEnemy(id){return ENEMIES[id]||null}
+
+// ---- 计算玩家属性 ----
+function calcStats(){
+  const p=gameState.player;
+  let str=p.str, dex=p.dex, int=p.int, atk=p.baseAtk, def=p.baseDef;
+  const eq=p.equipment;
+  for(const slot of ['weapon','armor','trinket']){
+    const item=eq[slot]?getItem(eq[slot]):null;
+    if(!item)continue;
+    if(item.str)str+=item.str;
+    if(item.dex)dex+=item.dex;
+    if(item.int)int+=item.int;
+    if(item.atk)atk+=item.atk;
+    if(item.def)def+=item.def;
+  }
+  return {str,dex,int,atk,def};
+}
+
+// ---- 更新 UI ----
+function updateUI(){
+  const p=gameState.player;
+  const stats=calcStats();
+  const hpPct=(p.hp/p.maxHp*100).toFixed(1);
+  const mpPct=(p.mp/p.maxMp*100).toFixed(1);
+  dom.hpBar.style.width=hpPct+'%';
+  dom.hpText.textContent=`HP: ${p.hp}/${p.maxHp}`;
+  dom.mpBar.style.width=mpPct+'%';
+  dom.mpText.textContent=`MP: ${p.mp}/${p.maxMp}`;
+  dom.sStr.textContent=stats.str;
+  dom.sDex.textContent=stats.dex;
+  dom.sInt.textContent=stats.int;
+  dom.sLv.textContent=p.lv;
+  dom.sGold.textContent=p.gold;
+  dom.sMap.textContent=MAPS[gameState.map].name;
+  dom.charName.textContent=`${p.name} Lv.${p.lv}`;
+  dom.eqWeapon.textContent=p.equipment.weapon?(getItem(p.equipment.weapon).name):'无';
+  dom.eqArmor.textContent=p.equipment.armor?(getItem(p.equipment.armor).name):'无';
+  dom.eqTrinket.textContent=p.equipment.trinket?(getItem(p.equipment.trinket).name):'无';
+  // 背包
+  if(p.inventory.length===0){
+    dom.inventory.innerHTML='<span class="empty">空</span>';
+  }else{
+    dom.inventory.innerHTML=p.inventory.map(id=>{
+      const item=getItem(id); if(!item)return '';
+      return `<div>${item.name} <span style="color:#005f2f">(${item.type})</span></div>`;
+    }).join('');
+  }
+  // 队友
+  if(p.allies.length===0){
+    dom.allyList.innerHTML='<span class="empty" style="color:#003d1f">无</span>';
+  }else{
+    dom.allyList.innerHTML=p.allies.map(a=>`<div class="ally-item">${a.name} <span class="hp">HP:${a.hp}/${a.maxHp}</span></div>`).join('');
+  }
+  // 时间
+  const d=new Date();
+  dom.gameTime.textContent=`⏳ 第 ${gameState.turn} 轮 · ${d.toLocaleTimeString()}`;
+}
+
+// ---- 叙事输出 ----
+function story(text,cls=''){
+  const div=document.createElement('div');
+  div.className='story-line'+(cls?' '+cls:'');
+  div.textContent=text;
+  dom.story.appendChild(div);
+  dom.story.scrollTop=dom.story.scrollHeight;
+}
+
+// ---- 战斗日志 ----
+function combatLog(text,cls=''){
+  const div=document.createElement('div');
+  div.className='story-line'+(cls?' '+cls:'');
+  div.textContent=text;
+  dom.combatLog.appendChild(div);
+  dom.combatLog.scrollTop=dom.combatLog.scrollHeight;
+}
+
+// ---- 清空按钮 ----
+function clearActions(){
+  dom.actions.innerHTML='';
+}
+
+// ---- 添加按钮 ----
+// guard 参数：可选守卫函数，返回 true 才允许执行回调
+function addAction(text,callback,cls='',guard=null){
+  const btn=document.createElement('button');
+  btn.className='act-btn'+(cls?' '+cls:'');
+  btn.textContent=text;
+  btn.onclick=()=>{if(!guard||guard())callback()};
+  dom.actions.appendChild(btn);
+  return btn;
+}
+
+// ---- 检查升级 ----
+function checkLevel(){
+  const p=gameState.player;
+  while(p.exp>=p.nextExp){
+    p.exp-=p.nextExp;
+    p.lv++;
+    p.nextExp=Math.floor(p.nextExp*1.5)+10;
+    p.str+=rnd(1,2); p.dex+=rnd(1,2); p.int+=rnd(1,2);
+    p.maxHp+=rnd(8,15); p.maxMp+=rnd(4,8);
+    p.hp=p.maxHp; p.mp=p.maxMp;
+    story(`🌟 升级！你现在是 ${p.lv} 级了！全属性提升！`, 'good');
+    updateUI();
+  }
+}
+
+// ================================================================
+//  ██████  █████  ████████ ████████ ██      ███████
+//  ██   ██ ██   ██    ██       ██    ██      ██
+//  ██████  ███████    ██       ██    ██      █████
+//  ██   ██ ██   ██    ██       ██    ██      ██
+//  ██████  ██   ██    ██       ██    ███████ ███████
+// ================================================================
+const COMBAT_SKILLS = {
+  attack:{name:'普通攻击',cost:0,desc:'造成物理伤害'},
+  heavy:{name:'重击',cost:5,desc:'1.8倍伤害',mult:1.8},
+  fireball:{name:'火球术',cost:12,desc:'2.0倍魔法伤害',magic:2.0},
+  heal:{name:'治愈术',cost:8,desc:'恢复 30+int HP',heal:30}
+};
+
+function startCombat(enemyId){
+  if(gameState.inCombat)return;
+  const enemyData=getEnemy(enemyId);
+  if(!enemyData){story(`[错误] 找不到敌人 ${enemyId}`,'bad');return;}
+  gameState.inCombat=true;
+  gameState.currentEnemy={...enemyData,hp:enemyData.hp,maxHp:enemyData.hp};
+  gameState.battleRound=0;
+  dom.combatLog.innerHTML='';
+  story(`⚔ 遭遇了 ${enemyData.name}！${enemyData.desc}`, 'combat');
+  combatLog(`[战斗开始] ${enemyData.name} 出现了！`, 'system');
+  updateUI();
+  renderCombatActions();
+}
+
+function renderCombatActions(){
+  clearActions();
+  const p=gameState.player;
+  const stats=calcStats();
+  addAction('⚔ 普通攻击',()=>combatAction('attack'),'pri',()=>gameState.inCombat);
+  if(p.mp>=5)addAction('💥 重击',()=>combatAction('heavy'),'warn',()=>gameState.inCombat);
+  if(p.mp>=12&&stats.int>=8)addAction('🔥 火球术',()=>combatAction('fireball'),'dan',()=>gameState.inCombat);
+  if(p.mp>=8)addAction('💚 治愈术',()=>combatAction('heal'),'loot',()=>gameState.inCombat);
+  addAction('🏃 逃跑',()=>combatAction('flee'),'',()=>gameState.inCombat);
+}
+
+function combatAction(skill){
+  if(!gameState.inCombat)return;
+  const p=gameState.player;
+  const en=gameState.currentEnemy;
+  const stats=calcStats();
+  gameState.battleRound++;
+
+  // ---- 玩家回合 ----
+  if(skill==='flee'){
+    const escapeChance=0.4+stats.dex*0.02;
+    if(Math.random()<escapeChance){
+      combatLog(`🏃 成功逃离了战斗！`, 'good');
+      story('你趁机逃入了密林深处…', 'system');
+      endCombat(false);
+      return;
+    }else{
+      combatLog(`❌ 逃跑失败！`, 'bad');
+    }
+  }
+  else if(skill==='attack'){
+    const dmg=Math.max(1,stats.atk+rnd(0,4)-en.def);
+    en.hp-=dmg;
+    combatLog(`⚔ 你对 ${en.name} 造成了 ${dmg} 点伤害！`, 'combat');
+  }
+  else if(skill==='heavy'){
+    p.mp-=5;
+    const dmg=Math.max(1,Math.floor(stats.atk*1.8)+rnd(0,3)-en.def);
+    en.hp-=dmg;
+    combatLog(`💥 重击！对 ${en.name} 造成了 ${dmg} 点伤害！`, 'warn');
+  }
+  else if(skill==='fireball'){
+    p.mp-=12;
+    const dmg=Math.max(1,stats.int*2+rnd(2,8)-Math.floor(en.def*0.5));
+    en.hp-=dmg;
+    combatLog(`🔥 火球术命中！${en.name} 受到 ${dmg} 点灼烧伤害！`, 'dan');
+  }
+  else if(skill==='heal'){
+    p.mp-=8;
+    const heal=30+stats.int*2+rnd(0,10);
+    p.hp=Math.min(p.maxHp,p.hp+heal);
+    combatLog(`💚 治愈术恢复了 ${heal} 点 HP！`, 'good');
+  }
+
+  // 检查敌人死亡
+  if(en.hp<=0){
+    const expGain=en.exp||10;
+    const goldGain=en.gold||rnd(2,8);
+    p.exp+=expGain;
+    p.gold+=goldGain;
+    combatLog(`🏆 ${en.name} 被击败！获得 ${expGain} EXP, ${goldGain} 金币！`, 'loot');
+    story(`🏆 击败了 ${en.name}！`, 'good');
+    checkLevel();
+    // 概率掉落
+    if(Math.random()<0.25){
+      const drops=['p_hp','p_mp','p_hp_m','t_ring','t_amulet'];
+      const drop=drops[rnd(0,drops.length-1)];
+      p.inventory.push(drop);
+      story(`🎁 掉落物品：${getItem(drop).name}`, 'loot');
+      combatLog(`🎁 获得 ${getItem(drop).name}`, 'loot');
+    }
+    endCombat(true);
+    return;
+  }
+
+  // ---- 敌人回合 ----
+  enemyTurn();
+
+  // 检查玩家死亡
+  if(p.hp<=0){
+    story('💀 你倒下了… 但冥冥中一股力量将你唤醒。', 'bad');
+    p.hp=Math.floor(p.maxHp*0.3);
+    p.mp=Math.floor(p.maxMp*0.3);
+    combatLog('💀 你被击败了，但奇迹般生还。', 'bad');
+    // 损失一半金币
+    const lost=Math.floor(p.gold*0.5);
+    p.gold-=lost;
+    story(`你遗失了 ${lost} 金币。`, 'bad');
+    endCombat(false);
+    return;
+  }
+
+  updateUI();
+  renderCombatActions();
+}
+
+function enemyTurn(){
+  const p=gameState.player;
+  const en=gameState.currentEnemy;
+  const stats=calcStats();
+
+  // 敌人 AI：血量低时50%概率防御
+  const isDefending=en.hp<en.maxHp*0.3&&Math.random()<0.5;
+  if(isDefending){
+    combatLog(`🛡 ${en.name} 进入防御姿态！`, 'info');
+    // 防御时减免伤害，不考虑
+  }
+
+  let dmg=Math.max(1,en.atk+rnd(0,3)-stats.def);
+  if(isDefending)dmg=Math.floor(dmg*0.5);
+  // 如果是魔法敌人
+  if(en.magic){
+    dmg+=Math.floor(en.magic*0.5)+rnd(0,3);
+  }
+  p.hp=Math.max(0,p.hp-dmg);
+  combatLog(`💢 ${en.name} 对你造成了 ${dmg} 点伤害！`, isDefending?'info':'bad');
+}
+
+function endCombat(victory){
+  gameState.inCombat=false;
+  gameState.currentEnemy=null;
+  updateUI();
+  if(victory){
+    story('你环顾四周，继续前行。', 'system');
+  }
+  renderMapActions();
+}
+
+// ================================================================
+//  ███████  ██████  ███    ██ ███████  ██████
+//  ██      ██    ██ ████   ██ ██      ██    ██
+//  ███████ ██    ██ ██ ██  ██ █████   ██    ██
+//       ██ ██    ██ ██  ██ ██ ██      ██    ██
+//  ███████  ██████  ██   ████ ███████  ██████
+// ================================================================
+function enterShop(shopId){
+  const shop=SHOPS[shopId];
+  if(!shop){story('[错误] 商店不存在','bad');return;}
+  gameState.inShop=true;
+  const p=gameState.player;
+  const discount=shop.discount+(p.reputation>=5?10:0);
+  story(`🛒 ${shop.name}：${shop.greeting}`, 'info');
+  if(discount>0)story(`— 声望使得商品 ${discount}% 折扣！`, 'good');
+  renderShopActions(shopId);
+}
+
+function renderShopActions(shopId){
+  clearActions();
+  const shop=SHOPS[shopId];
+  const p=gameState.player;
+  const discount=shop.discount+(p.reputation>=5?10:0);
+
+  // 列出商品
+  shop.stock.forEach((itemId,i)=>{
+    const item=getItem(itemId);
+    if(!item)return;
+    const price=Math.floor(item.price*(1-discount/100));
+    const canBuy=p.gold>=price;
+    // 检查是否已有同类装备
+    const hasEquipped=item.type==='weapon'||item.type==='armor'||item.type==='trinket';
+    const label=hasEquipped?`${item.name} ¥${price} [装备]`:`${item.name} ¥${price}`;
+    addAction(label,()=>{
+      if(p.gold<price){story('金币不足！','bad');return;}
+      // 如果已有同类型装备在背包，提示替换
+      p.gold-=price;
+      p.inventory.push(itemId);
+      story(`✅ 购买了 ${item.name}，花费 ¥${price}`, 'good');
+      updateUI();
+      renderShopActions(shopId);
+    },canBuy?'':'disabled');
+  });
+
+  // 出售列表
+  if(p.inventory.length>0){
+    addAction('— 出售物品 —',()=>{
+      renderSellActions(shopId);
+    },'warn');
+  }
+
+  addAction('🚪 离开商店',()=>{
+    gameState.inShop=false;
+    story('你离开了商店。', 'system');
+    renderMapActions();
+  },'');
+}
+
+function renderSellActions(shopId){
+  clearActions();
+  const p=gameState.player;
+  const uniqueItems=[...new Set(p.inventory)];
+  uniqueItems.forEach(itemId=>{
+    const item=getItem(itemId);
+    if(!item)return;
+    const sellPrice=Math.floor(item.price*0.5);
+    addAction(`卖出 ${item.name} ¥${sellPrice}`,()=>{
+      const idx=p.inventory.indexOf(itemId);
+      if(idx>-1)p.inventory.splice(idx,1);
+      p.gold+=sellPrice;
+      story(`💰 卖出了 ${item.name}，获得 ¥${sellPrice}`, 'loot');
+      updateUI();
+      renderSellActions(shopId);
+    },'');
+  });
+  addAction('🔙 返回',()=>renderShopActions(shopId),'');
+}
+
+// ================================================================
+//  ███    ███  █████  ██████
+//  ████  ████ ██   ██ ██   ██
+//  ██ ████ ██ ███████ ██████
+//  ██  ██  ██ ██   ██ ██
+//  ██      ██ ██   ██ ██
+// ================================================================
+// 随机事件
+function triggerRandomEvent(){
+  const mapData=MAPS[gameState.map];
+  if(!mapData||mapData.events.length===0)return false;
+  const eventType=mapData.events[rnd(0,mapData.events.length-1)];
+  const p=gameState.player;
+
+  switch(eventType){
+    case 'chest':{
+      const gold=rnd(10,50);
+      p.gold+=gold;
+      story(`🎁 你发现了一个宝箱！获得 ${gold} 金币！`, 'loot');
+      if(Math.random()<0.3){
+        const items=['p_hp','p_mp','t_ring','t_amulet'];
+        const item=items[rnd(0,items.length-1)];
+        p.inventory.push(item);
+        story(`🎁 宝箱中还有：${getItem(item).name}`, 'loot');
+      }
+      return true;
+    }
+    case 'merchant':{
+      const gold=rnd(5,20);
+      p.gold+=gold;
+      story(`🧳 你遇到了一位流浪商人，交易后赚了 ${gold} 金币。`, 'good');
+      return true;
+    }
+    case 'trap':{
+      const dmg=rnd(5,15);
+      p.hp=Math.max(1,p.hp-dmg);
+      story(`⚠️ 你踩中了陷阱！损失 ${dmg} HP。`, 'bad');
+      updateUI();
+      return true;
+    }
+    case 'hermit':{
+      story(`🧙 一位隐居的贤者传授了你一些战斗技巧。`, 'special');
+      p.str+=1; p.dex+=1;
+      story(`— 力量+1，敏捷+1`, 'good');
+      updateUI();
+      return true;
+    }
+    case 'storyteller':{
+      story(`📖 营地的说书人讲述了一段古老的传说，你感到心智得到了启发。`, 'special');
+      p.int+=1;
+      story(`— 智力+1`, 'good');
+      p.reputation+=2;
+      updateUI();
+      return true;
+    }
+    case 'ancient_altar':{
+      if(p.hp<p.maxHp*0.5){
+        p.hp=p.maxHp;
+        p.mp=p.maxMp;
+        story(`✨ 远古祭坛释放出治愈之力，你完全恢复了！`, 'special');
+        updateUI();
+      }else{
+        story(`✨ 祭坛散发微光，你感到体内充满了力量。`, 'special');
+        p.maxHp+=5; p.hp=p.maxHp;
+        story(`— 最大HP+5`, 'good');
+        updateUI();
+      }
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+
+// ================================================================
+//  ███    ███  █████  ██████      █████  ██████  ████████ ██  ██████  ███    ██ ███████
+//  ████  ████ ██   ██ ██   ██    ██   ██ ██   ██    ██    ██ ██    ██ ████   ██ ██
+//  ██ ████ ██ ███████ ██████     ███████ ██████     ██    ██ ██    ██ ██ ██  ██ ███████
+//  ██  ██  ██ ██   ██ ██   ██    ██   ██ ██   ██    ██    ██ ██    ██ ██  ██ ██      ██
+//  ██      ██ ██   ██ ██   ██    ██   ██ ██   ██    ██    ██  ██████  ██   ████ ███████
+// ================================================================
+function renderMapActions(){
+  clearActions();
+  const mapData=MAPS[gameState.map];
+  const p=gameState.player;
+
+  // 探索（随机遇敌或事件）
+  addAction('🗺 探索',()=>{
+    gameState.turn++;
+    story('—', 'system');
+    // 70% 概率遇敌，30% 随机事件
+    if(Math.random()<0.65){
+      const enemyPool=mapData.enemies;
+      const enemyId=enemyPool[rnd(0,enemyPool.length-1)];
+      startCombat(enemyId);
+    }else{
+      const happened=triggerRandomEvent();
+      if(!happened)story('周围一片寂静，什么也没有发生。', 'system');
+      updateUI();
+      renderMapActions();
+    }
+  },'pri');
+
+  // 使用药水
+  const hasPotion=p.inventory.some(id=>getItem(id)&&getItem(id).type==='potion');
+  if(hasPotion){
+    addAction('🧪 用药水',()=>{
+      const potions=p.inventory.filter(id=>{
+        const item=getItem(id);
+        return item&&item.type==='potion';
+      });
+      if(potions.length===0){story('没有药水了。','bad');return;}
+      const id=potions[0];
+      const item=getItem(id);
+      const idx=p.inventory.indexOf(id);
+      if(idx>-1)p.inventory.splice(idx,1);
+      if(item.heal)p.hp=Math.min(p.maxHp,p.hp+item.heal);
+      if(item.mana)p.mp=Math.min(p.maxMp,p.mp+item.mana);
+      story(`🧪 使用了 ${item.name}，恢复效果显著！`, 'good');
+      updateUI();
+      renderMapActions();
+    },'loot');
+  }
+
+  // 商店
+  if(mapData.shops&&mapData.shops.length>0){
+    mapData.shops.forEach(shopId=>{
+      const shop=SHOPS[shopId];
+      if(shop)addAction(`🛒 ${shop.name}`,()=>enterShop(shopId),'warn');
+    });
+  }
+
+  // 旅行
+  if(mapData.canTravel&&mapData.canTravel.length>0){
+    mapData.canTravel.forEach(destId=>{
+      const dest=MAPS[destId];
+      if(dest)addAction(`🚶 前往 ${dest.name}`,()=>{
+        // 检查是否已探索
+        if(!gameState.explored.has(destId)){
+          gameState.explored.add(destId);
+          story(`🌄 你来到了 ${dest.name}：${dest.desc}`, 'special');
+        }else{
+          story(`你再次来到了 ${dest.name}。`, 'system');
+        }
+        gameState.map=destId;
+        gameState.turn++;
+        updateUI();
+        renderMapActions();
+      },'');
+    });
+  }
+
+  // 状态查看
+  addAction('📋 状态',()=>{
+    const stats=calcStats();
+    story(`— 力:${stats.str} 敏:${stats.dex} 智:${stats.int} 攻:${stats.atk} 防:${stats.def} 声望:${p.reputation}`, 'info');
+  },'');
+}
+
+// ================================================================
+//  ███████  ██████  ████████  █████  ██████  ████████
+//  ██      ██    ██    ██    ██   ██ ██   ██    ██
+//  █████   ██    ██    ██    ███████ ██████     ██
+//  ██      ██    ██    ██    ██   ██ ██   ██    ██
+//  ██       ██████     ██    ██   ██ ██   ██    ██
+// ================================================================
+function initGame(){
+  const p=gameState.player;
+  dom.story.innerHTML='';
+  dom.combatLog.innerHTML='';
+
+  story('═══════════════════════════════════════════', 'system');
+  story('  ⚔ 零号协议 · 异世界冒险', 'special');
+  story('═══════════════════════════════════════════', 'system');
+  story('');
+  story('意识在黑暗中凝聚…', 'system');
+  story('你睁开眼睛，发现自己躺在一片幽暗的森林中。', '');
+  story('记忆支离破碎，只有「零号协议」这个名词在脑海中回荡。', '');
+  story('远方有篝火的光芒，西边是古老的石质建筑。', '');
+  story('');
+
+  // 命名
+  const name=prompt('请输入你的名字（旅者）：','亚瑟')||'旅者';
+  p.name=name;
+  story(`「${name}」… 你喃喃自语，站起身来。`, 'special');
+  story('命运之轮已开始转动。', 'info');
+  updateUI();
+  renderMapActions();
+}
+
+// 启动
+initGame();
+</script>
+</body>
+</html>
