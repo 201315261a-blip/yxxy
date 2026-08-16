@@ -1,0 +1,1652 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>市易清鉴</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:'KaiTi','STKaiti','Kaiti SC','SimSun','Songti SC','Noto Serif SC',serif;
+  background:
+    radial-gradient(1100px 520px at 88% -8%,rgba(214,190,140,.5),transparent 62%),
+    radial-gradient(900px 560px at -12% 28%,rgba(148,178,168,.42),transparent 58%),
+    radial-gradient(760px 460px at 108% 92%,rgba(196,164,120,.35),transparent 60%),
+    linear-gradient(168deg,#ece6d6 0%,#ded5bf 46%,#cec3a6 100%);
+  color:#33302a;
+  touch-action:manipulation;
+  overflow:hidden;
+}
+.page{
+  position:fixed;left:0;top:0;width:100%;height:100%;z-index:1;
+  display:none;flex-direction:column;
+  padding:14px 14px 20px;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.page.active{display:flex}
+.page::-webkit-scrollbar{width:0;height:0}
+
+.topbar{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-shrink:0}
+.topbar .back{
+  width:36px;height:36px;flex-shrink:0;border-radius:10px;border:1px solid rgba(255,255,255,.7);
+  background:rgba(255,255,255,.35);
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);
+  color:#6d5a33;font-size:17px;font-family:inherit;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  box-shadow:0 3px 10px rgba(80,62,28,.08);
+}
+.topbar .title{
+  font-size:20px;font-weight:bold;letter-spacing:3px;color:#4a4433;
+  text-shadow:1px 1px 0 rgba(255,255,255,.6);flex:1;
+}
+.topbar .title::before{content:'◆';color:#b03a2e;font-size:13px;margin-right:6px;vertical-align:2px}
+
+.card{
+  background:rgba(255,255,255,.40);
+  -webkit-backdrop-filter:blur(18px) saturate(1.5);
+  backdrop-filter:blur(18px) saturate(1.5);
+  border:1px solid rgba(255,255,255,.68);
+  border-radius:14px;
+  box-shadow:0 8px 26px rgba(80,62,28,.10),inset 0 1px 0 rgba(255,255,255,.65);
+  padding:14px;margin-bottom:14px;flex-shrink:0;position:relative;
+}
+.card h3{
+  font-size:15px;color:#6d5a33;letter-spacing:2px;margin-bottom:10px;
+  border-left:3px solid #b03a2e;padding-left:8px;font-weight:bold;
+}
+.card .hint{font-size:11px;color:#a0926f;margin-top:6px;line-height:1.7}
+
+/* 首页 */
+#home{justify-content:flex-start;align-items:center}
+.home-title{text-align:center;margin:14px 0 20px}
+.home-title .main{
+  font-size:32px;font-weight:bold;letter-spacing:10px;color:#3c3527;
+  text-shadow:2px 2px 4px rgba(255,255,255,.7);
+}
+.home-title .sub{margin-top:8px;font-size:13px;color:#8a7a55;letter-spacing:4px}
+.home-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;max-width:430px;
+}
+.home-item{
+  background:rgba(255,255,255,.38);
+  -webkit-backdrop-filter:blur(16px) saturate(1.4);backdrop-filter:blur(16px) saturate(1.4);
+  border:1px solid rgba(255,255,255,.68);border-radius:16px;
+  padding:22px 10px;text-align:center;cursor:pointer;position:relative;
+  box-shadow:0 8px 22px rgba(80,62,28,.10),inset 0 1px 0 rgba(255,255,255,.6);
+  transition:transform .15s;
+}
+.home-item:active{transform:scale(.96)}
+.home-item .icon{
+  width:52px;height:52px;margin:0 auto 10px;border-radius:50%;
+  border:2px solid #b03a2e;color:#b03a2e;font-size:22px;font-weight:bold;
+  display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 35% 30%,#fdf8ec,#efe3c4);
+}
+.home-item .name{font-size:17px;font-weight:bold;color:#4a4433;letter-spacing:4px}
+.home-item .desc{margin-top:5px;font-size:11px;color:#9a8a65}
+.home-item .seal{
+  position:absolute;top:10px;right:10px;width:13px;height:13px;border:2px solid #b03a2e;border-radius:3px;
+}
+.home-item .seal::after{content:'';position:absolute;left:3px;top:3px;right:3px;bottom:3px;background:#b03a2e;border-radius:1px;opacity:.7}
+.home-foot{margin-top:22px;font-size:11px;color:#a0926f;letter-spacing:2px;text-align:center}
+
+/* 今日快照 */
+.snap{width:100%;max-width:430px;margin-bottom:18px}
+.snap-row{display:flex;gap:8px}
+.snap-cell{
+  flex:1;text-align:center;padding:10px 4px;border-radius:12px;
+  background:rgba(255,255,255,.34);
+  -webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3);
+  border:1px solid rgba(255,255,255,.6);
+}
+.snap-cell .k{font-size:11px;color:#9a8a65;letter-spacing:1px}
+.snap-cell .v{font-size:16px;font-weight:bold;color:#4a4433;margin-top:3px}
+.snap-cell .v.red{color:#b03a2e}
+.snap h3{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.snap-tabs{display:flex;gap:4px;flex-shrink:0}
+.snap-tabs button{
+  padding:3px 10px;border-radius:6px;font-size:11px;font-family:inherit;cursor:pointer;
+  background:rgba(255,255,255,.32);border:1px solid rgba(255,255,255,.6);color:#6d5a33;
+}
+.snap-tabs button.on{background:#b03a2e;color:#fff;border-color:#b03a2e}
+.snap-note{margin-top:8px;font-size:10.5px;color:#a0926f;text-align:center;letter-spacing:1px;line-height:1.6}
+
+/* 分段tab */
+.seg{display:flex;gap:6px;margin-bottom:12px;flex-shrink:0;flex-wrap:wrap}
+.seg button{
+  flex:1;min-width:60px;padding:8px 2px;border-radius:9px;font-size:13px;letter-spacing:1px;
+  font-family:inherit;cursor:pointer;color:#6d5a33;
+  background:rgba(255,255,255,.32);border:1px solid rgba(255,255,255,.6);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);
+}
+.seg button.on{
+  background:#b03a2e;color:#fff;border-color:#b03a2e;
+  box-shadow:0 4px 12px rgba(176,58,46,.3);
+}
+
+/* 表单 */
+.fld{margin-bottom:10px}
+.fld label{display:block;font-size:12px;color:#6d5a33;letter-spacing:1px;margin-bottom:4px}
+.fld label b{color:#b03a2e}
+.in{
+  width:100%;padding:10px 12px;border-radius:9px;font-size:14px;font-family:inherit;
+  background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.8);color:#3c3527;
+  outline:none;box-shadow:inset 0 1px 3px rgba(80,62,28,.06);
+}
+.in:focus{border-color:#b8860b;background:#fffdf6}
+select.in{appearance:none;-webkit-appearance:none}
+textarea.in{resize:none;min-height:56px}
+.fld-row{display:flex;gap:8px}
+.fld-row .fld{flex:1}
+.btn{
+  width:100%;padding:11px 0;border-radius:9px;font-size:15px;letter-spacing:4px;
+  font-family:inherit;cursor:pointer;border:none;margin-top:4px;
+  background:#b03a2e;color:#fff;
+  box-shadow:0 4px 14px rgba(176,58,46,.28);
+}
+.btn:active{opacity:.8}
+.btn.gold{background:#b8860b;box-shadow:0 4px 14px rgba(184,134,11,.28)}
+.btn.ghost{background:transparent;color:#6d5a33;border:1px solid #b9a87c;box-shadow:none}
+
+/* 结果区 */
+.res{
+  background:rgba(255,255,255,.34);border:1px solid rgba(255,255,255,.6);border-radius:12px;
+  padding:12px;margin-top:12px;display:none;
+}
+.res.show{display:block}
+.res .big{
+  font-size:26px;font-weight:bold;text-align:center;color:#3c3527;margin:4px 0;
+  font-family:'Courier New',monospace;
+}
+.res .big.red{color:#b03a2e}
+.res .big.green{color:#4d6b4d}
+.res .big.gold{color:#b8860b}
+.res .verdict{
+  text-align:center;font-size:15px;font-weight:bold;letter-spacing:2px;
+  padding:8px;border-radius:8px;margin:8px 0;
+}
+.res .verdict.ok{background:rgba(77,107,77,.12);color:#4d6b4d}
+.res .verdict.warn{background:rgba(184,134,11,.14);color:#8a6a20}
+.res .verdict.bad{background:rgba(176,58,46,.12);color:#b03a2e}
+.res .line{font-size:13px;color:#5d5344;line-height:2;border-top:1px dashed rgba(154,138,101,.4);padding-top:8px;margin-top:6px}
+.res .line b{color:#3c3527}
+.res .line .r{color:#b03a2e;font-weight:bold}
+.res .line .g{color:#4d6b4d;font-weight:bold}
+.res .line .y{color:#8a6a20;font-weight:bold}
+
+/* 对比表 */
+.cmp{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px}
+.cmp th,.cmp td{padding:7px 6px;border-bottom:1px solid rgba(154,138,101,.25);text-align:center}
+.cmp th{color:#6d5a33;background:rgba(184,134,11,.08);font-weight:bold;letter-spacing:1px}
+.cmp td:first-child{color:#8a7a55;text-align:left}
+.cmp tr.hl td{background:rgba(176,58,46,.07);font-weight:bold;color:#3c3527}
+.cmp .num{font-family:'Courier New',monospace}
+
+/* 防坑提示 */
+.tips{margin-top:10px}
+.tip{
+  display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:#5d5344;
+  line-height:1.65;padding:8px 10px;border-radius:8px;margin-top:6px;
+  background:rgba(176,58,46,.06);border-left:3px solid #b03a2e;
+}
+.tip .t-no{flex-shrink:0;width:18px;height:18px;border-radius:50%;background:#b03a2e;color:#fff;
+  font-size:11px;display:flex;align-items:center;justify-content:center;margin-top:2px}
+.tip.gold{background:rgba(184,134,11,.08);border-left-color:#b8860b}
+.tip.gold .t-no{background:#b8860b}
+.tip.green{background:rgba(77,107,77,.08);border-left-color:#4d6b4d}
+.tip.green .t-no{background:#4d6b4d}
+
+/* 记账 */
+.ledger-hero{
+  text-align:center;padding:16px 10px;border-radius:14px;margin-bottom:12px;
+  background:rgba(255,255,255,.40);
+  -webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5);
+  border:1px solid rgba(255,255,255,.68);box-shadow:0 8px 26px rgba(80,62,28,.10);
+}
+.ledger-hero .k{font-size:12px;color:#9a8a65;letter-spacing:3px}
+.ledger-hero .v{
+  font-size:40px;font-weight:bold;color:#3c3527;font-family:'Courier New',monospace;
+  margin:2px 0;text-shadow:1px 1px 0 rgba(255,255,255,.6);
+}
+.ledger-hero .v.over{color:#b03a2e}
+.ledger-hero .sub{font-size:12px;color:#8a7a55;line-height:1.8}
+.ledger-hero .sub b{color:#b03a2e}
+.ledger-hist{font-size:11.5px;color:#8a7a55;margin-top:8px;line-height:1.9;letter-spacing:.5px}
+.ledger-hist b{color:#3c3527}
+.bar-wrap{height:10px;border-radius:6px;background:rgba(154,138,101,.18);overflow:hidden;margin-top:8px}
+.bar{height:100%;border-radius:6px;background:linear-gradient(90deg,#b8860b,#b03a2e);transition:width .4s}
+.bar.over{background:linear-gradient(90deg,#b03a2e,#8c2c22)}
+.lg-list{margin-top:4px}
+.lg-row{
+  display:flex;align-items:center;gap:10px;padding:10px 6px;
+  border-bottom:1px dashed rgba(154,138,101,.3);font-size:13.5px;
+}
+.lg-row .d{color:#9a8a65;font-size:11.5px;width:74px;flex-shrink:0}
+.lg-row .s{
+  width:40px;flex-shrink:0;text-align:center;font-size:11px;padding:3px 0;border-radius:5px;
+  background:rgba(184,134,11,.1);color:#8a6a20;
+}
+.lg-row .t{flex:1;color:#4a4433;word-break:break-all}
+.lg-row .a{font-family:'Courier New',monospace;font-weight:bold;color:#3c3527}
+.lg-row .del{color:#c98a7a;font-size:16px;background:none;border:none;cursor:pointer;font-family:inherit;padding:2px 6px}
+.lg-row .del:active{opacity:.6}
+.lg-empty{text-align:center;color:#b5a884;font-size:13px;padding:22px 0;letter-spacing:2px}
+.lg-sum{font-size:12px;color:#8a7a55;padding:8px 6px 0;line-height:1.8}
+.lg-sum b{color:#3c3527}
+.ck-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.ck-row button{
+  padding:6px 12px;border-radius:7px;font-size:12.5px;font-family:inherit;cursor:pointer;
+  background:rgba(255,255,255,.32);border:1px solid rgba(255,255,255,.6);color:#6d5a33;
+}
+.ck-row button.on{background:#b8860b;color:#fff;border-color:#b8860b}
+
+/* 自制日历弹层（兼容无原生日期选择器的浏览器/WebView） */
+.date-pick{position:relative}
+.cal{
+  position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:40;
+  background:rgba(250,245,232,.99);border:1px solid rgba(154,138,101,.45);border-radius:12px;
+  padding:12px;box-shadow:0 14px 36px rgba(50,36,18,.28);display:none;
+}
+.cal.show{display:block;animation:calIn .15s ease}
+@keyframes calIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.cal-head .ym{font-size:14px;font-weight:bold;color:#4a4433;letter-spacing:2px}
+.cal-head button{
+  width:28px;height:28px;border-radius:7px;border:1px solid rgba(154,138,101,.4);
+  background:rgba(255,255,255,.5);color:#6d5a33;font-size:15px;font-family:inherit;cursor:pointer;line-height:1;
+}
+.cal-head button:active{background:#efe3c4}
+.cal-week,.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-week span{text-align:center;font-size:11px;color:#9a8a65;padding:2px 0}
+.cal-grid .day{
+  text-align:center;font-size:13px;padding:6px 0;border-radius:6px;cursor:pointer;color:#4a4433;
+}
+.cal-grid .day:hover{background:rgba(176,58,46,.10)}
+.cal-grid .day.sel{background:#b03a2e;color:#fff;font-weight:bold}
+.cal-grid .day.today{box-shadow:inset 0 0 0 1px #b8860b}
+.cal-grid .blank{visibility:hidden}
+.cal-foot{display:flex;gap:8px;margin-top:10px}
+.cal-foot button{
+  flex:1;padding:7px 0;border-radius:8px;font-size:12.5px;font-family:inherit;cursor:pointer;
+  background:rgba(255,255,255,.5);border:1px solid rgba(154,138,101,.4);color:#6d5a33;
+}
+.cal-foot button.primary{background:#b03a2e;color:#fff;border-color:#b03a2e}
+.cal-foot button:active{opacity:.8}
+
+/* 储蓄 */
+.save-tabs{display:flex;gap:6px;margin-bottom:12px;flex-shrink:0;flex-wrap:wrap}
+.save-tabs button{
+  padding:8px 10px;border-radius:9px;font-size:12.5px;letter-spacing:1px;font-family:inherit;cursor:pointer;
+  color:#6d5a33;background:rgba(255,255,255,.32);border:1px solid rgba(255,255,255,.6);
+}
+.save-tabs button.on{background:#b8860b;color:#fff;border-color:#b8860b}
+.save-tab{display:none}
+.save-tab.show{display:block}
+.plan-progress{text-align:center;padding:10px 0}
+.plan-progress .pct{font-size:30px;font-weight:bold;color:#b8860b;font-family:'Courier New',monospace}
+.plan-progress .txt{font-size:12px;color:#8a7a55;margin-top:4px;line-height:1.8}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.two-col .cell{
+  background:rgba(255,255,255,.3);border:1px solid rgba(255,255,255,.55);border-radius:10px;
+  padding:10px;text-align:center;
+}
+.two-col .cell .k{font-size:11px;color:#9a8a65}
+.two-col .cell .v{font-size:17px;font-weight:bold;color:#3c3527;margin-top:3px;font-family:'Courier New',monospace}
+.two-col .cell .v.red{color:#b03a2e}
+.two-col .cell .v.green{color:#4d6b4d}
+
+/* 弹窗 */
+#modal{position:fixed;left:0;top:0;width:100%;height:100%;z-index:9;display:none;
+  background:rgba(40,32,20,.42);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;padding:20px}
+#modal.show{display:flex}
+.modal-box{
+  width:100%;max-width:360px;background:rgba(250,245,232,.97);border-radius:16px;padding:18px;
+  border:1px solid rgba(255,255,255,.8);box-shadow:0 18px 50px rgba(50,36,18,.3);
+  max-height:88vh;overflow-y:auto;
+}
+.modal-box h4{font-size:17px;color:#4a4433;letter-spacing:3px;margin-bottom:12px;text-align:center}
+.modal-btns{display:flex;gap:10px;margin-top:14px}
+.modal-btns button{
+  flex:1;padding:10px 0;border-radius:9px;font-size:15px;font-family:inherit;cursor:pointer;letter-spacing:3px;
+}
+.modal-btns .ok{background:#b03a2e;color:#fff;border:1px solid #b03a2e}
+.modal-btns .no{background:transparent;color:#6d5a33;border:1px solid #b9a87c}
+
+.toast{
+  position:fixed;left:50%;bottom:44px;transform:translateX(-50%) translateY(20px);z-index:20;
+  background:rgba(52,42,28,.92);color:#f2ead6;font-size:13.5px;letter-spacing:1px;
+  padding:10px 20px;border-radius:10px;opacity:0;transition:all .3s;pointer-events:none;
+  max-width:82%;text-align:center;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* 计划表行 */
+.lg-row.click{cursor:pointer}
+.lg-row.done{opacity:.45}
+.lg-row.done .t,.lg-row.done .a{text-decoration:line-through}
+.lg-row .s.ok{background:rgba(77,107,77,.16);color:#4d6b4d}
+.lg-row .s.plan{width:auto;min-width:32px;background:rgba(184,134,11,.12);color:#8a6a20}
+</style>
+</head>
+<body>
+<!-- 首页 -->
+<div id="home" class="page">
+  <div class="home-title">
+    <div class="main">市易清鉴</div>
+    <div class="sub">明明白白做买卖 · 清清楚楚过日子</div>
+  </div>
+  <div class="card snap">
+    <h3>消费快照
+      <span class="snap-tabs" id="snapTabs">
+        <button class="on" onclick="snapTab('today')">今日</button>
+        <button onclick="snapTab('month')">本月</button>
+        <button onclick="snapTab('year')">本年</button>
+        <button onclick="snapTab('all')">累计</button>
+      </span>
+    </h3>
+    <div class="snap-row">
+      <div class="snap-cell"><div class="k" id="snapK1">今日已花</div><div class="v" id="snapV1">¥0</div></div>
+      <div class="snap-cell"><div class="k" id="snapK2">今日笔数</div><div class="v" id="snapV2">0</div></div>
+      <div class="snap-cell"><div class="k" id="snapK3">今日最多</div><div class="v" id="snapV3">—</div></div>
+    </div>
+    <div class="snap-note">「今日 / 本月」随日期自动切换；「本年 / 累计」长期累积，绝不因月份清零</div>
+  </div>
+  <div class="home-grid">
+    <div class="home-item" onclick="go('house')">
+      <div class="seal"></div>
+      <div class="icon">宅</div>
+      <div class="name">住房</div>
+      <div class="desc">买房 · 租房 · 贷款 · 出租 · 卖房</div>
+    </div>
+    <div class="home-item" onclick="go('food')">
+      <div class="seal"></div>
+      <div class="icon">食</div>
+      <div class="name">饮食</div>
+      <div class="desc">餐费记账 · 预算控制</div>
+    </div>
+    <div class="home-item" onclick="go('travel')">
+      <div class="seal"></div>
+      <div class="icon">行</div>
+      <div class="name">出行</div>
+      <div class="desc">交通记账 · 预算控制</div>
+    </div>
+    <div class="home-item" onclick="go('shop')">
+      <div class="seal"></div>
+      <div class="icon">货</div>
+      <div class="name">百货</div>
+      <div class="desc">购物记账 · 预算控制</div>
+    </div>
+    <div class="home-item" style="grid-column:1/-1" onclick="go('save')">
+      <div class="seal"></div>
+      <div class="icon">储</div>
+      <div class="name">储蓄</div>
+      <div class="desc">目标反推 · 复利测算 · 定存计算 · 攒钱法</div>
+    </div>
+  </div>
+  <div class="home-foot">全部数据仅存本机 · 断网可用</div>
+</div>
+
+<!-- 住房板块 -->
+<div id="house" class="page">
+  <div class="topbar">
+    <button class="back" onclick="go('home')">‹</button>
+    <div class="title">住房</div>
+  </div>
+  <div class="ledger-hero">
+    <div class="k">本月住房总花费</div>
+    <div class="v" id="houseHero">¥0</div>
+    <div class="bar-wrap"><div class="bar" id="houseBar" style="width:0%"></div></div>
+    <div class="sub" id="houseSub">尚未设置月预算 · 点击设置</div>
+    <div class="ledger-hist" id="houseHist"></div>
+  </div>
+  <div class="ck-row" id="houseRangeCk">
+    <button class="on" onclick="setRange('house','day')">今日</button>
+    <button onclick="setRange('house','week')">本周</button>
+    <button onclick="setRange('house','month')">本月</button>
+    <button onclick="setRange('house','lastmonth')">上月</button>
+    <button onclick="setRange('house','all')">累计</button>
+  </div>
+  <div class="card" style="padding:8px 14px">
+    <div class="lg-list" id="houseList"></div>
+  </div>
+  <button class="btn gold" onclick="openLedger('house')">＋ 记一笔住房</button>
+  <div class="seg" id="houseSeg">
+    <button class="on" onclick="houseTab('rent')">租房</button>
+    <button onclick="houseTab('own')">出租</button>
+    <button onclick="houseTab('buy')">买房</button>
+    <button onclick="houseTab('loan')">贷款率</button>
+    <button onclick="houseTab('sell')">卖房</button>
+  </div>
+
+  <!-- 租房（租客视角） -->
+  <div id="ht-rent" class="card">
+    <h3>租售比测算 · 租客视角</h3>
+    <div class="fld">
+      <label>城市（对照省会参考值）</label>
+      <select class="in" id="rCity"></select>
+    </div>
+    <div class="fld-row">
+      <div class="fld"><label>房屋市场总价 <b>¥</b></label><input class="in" id="rPrice" type="number" placeholder="如 3000000"></div>
+      <div class="fld"><label>月租金 <b>¥</b></label><input class="in" id="rRent" type="number" placeholder="如 4500"></div>
+    </div>
+    <button class="btn" onclick="calcRent()">算一算 · 租还是买</button>
+    <div class="res" id="rRes"></div>
+    <div class="tips">
+      <div class="tip green"><span class="t-no">i</span><span><b>怎么看？</b>租售比 = 年租金 ÷ 房价。高于 4% 租金回报健康、买房出租划算；2%~4% 为常态；低于 2% 说明房价透支，租房比买房更理性。</span></div>
+    </div>
+  </div>
+
+  <!-- 出租（房东视角） -->
+  <div id="ht-own" class="card">
+    <h3>出租回报测算 · 房东视角</h3>
+    <div class="fld"><label>购房总成本（含税费·装修） <b>¥</b></label><input class="in" id="oCost" type="number" placeholder="如 2800000"></div>
+    <div class="fld-row">
+      <div class="fld"><label>月租金收入 <b>¥</b></label><input class="in" id="oRent" type="number" placeholder="如 5000"></div>
+      <div class="fld"><label>预计年空置月数</label><input class="in" id="oEmpty" type="number" value="1"></div>
+    </div>
+    <div class="fld-row">
+      <div class="fld"><label>年物业费 <b>¥</b></label><input class="in" id="oFee" type="number" value="0"></div>
+      <div class="fld"><label>年维修预估 <b>¥</b></label><input class="in" id="oFix" type="number" value="2000"></div>
+    </div>
+    <button class="btn" onclick="calcOwn()">算一算 · 值不值得租出去</button>
+    <div class="res" id="oRes"></div>
+    <div class="tips">
+      <div class="tip"><span class="t-no">i</span><span><b>别只看毛回报：</b>空置期、物业费、维修、中介续租成本都会吃掉利润，净回报率才是真实收益率。</span></div>
+    </div>
+  </div>
+
+  <!-- 买房 -->
+  <div id="ht-buy" class="card">
+    <h3>买房全解析 · 全款 vs 贷款</h3>
+    <div class="fld-row">
+      <div class="fld"><label>房屋总价 <b>¥</b></label><input class="in" id="bPrice" type="number" placeholder="如 3000000"></div>
+      <div class="fld"><label>首付比例 <b>%</b></label><input class="in" id="bDown" type="number" value="30"></div>
+    </div>
+    <div class="fld-row">
+      <div class="fld"><label>贷款年限（年）</label><input class="in" id="bYears" type="number" value="30"></div>
+      <div class="fld"><label>年利率 <b>%</b></label><input class="in" id="bRate" type="number" value="3.6" step="0.01"></div>
+    </div>
+    <div class="fld"><label>月收入（可选，看月供压力）¥</label><input class="in" id="bIncome" type="number" placeholder="不填则跳过压力测试"></div>
+    <div class="ck-row" id="bModeCk">
+      <button class="on" onclick="setBuyMode(0)">等额本息</button>
+      <button onclick="setBuyMode(1)">等额本金</button>
+    </div>
+    <button class="btn" onclick="calcBuy()">算一算 · 贷款的真实代价</button>
+    <div class="res" id="bRes"></div>
+    <div class="tips">
+      <div class="tip"><span class="t-no">!</span><span><b>最大的坑：</b>只看月供、不看总利息。30 年房贷利息往往等于房价的 60%~100%，贷款买房的总支出可能接近房价的两倍。</span></div>
+      <div class="tip"><span class="t-no">!</span><span><b>等额本息前期还的主要是利息：</b>前 5~8 年提前还款，省下的利息很少，反而损失了流动性。</span></div>
+      <div class="tip gold"><span class="t-no">金</span><span><b>隐性成本别忘：</b>契税（1%~3%）、维修基金、中介费、装修费都要计入总成本，买房实际支出 ≈ 房价 × 1.08~1.15。</span></div>
+      <div class="tip gold"><span class="t-no">金</span><span><b>利率差 80BP 的威力：</b>同样贷 210 万 30 年，利率 3.0% 与 3.8% 的利息差可达 30 万+，选银行时别只盯着月供差几十块。</span></div>
+      <div class="tip"><span class="t-no">!</span><span><b>等额本金 vs 等额本息：</b>本金法总利息更少，但前期月供高；本息法月供恒定、前期轻松。选哪种看收入曲线，别被销售一句话带偏。</span></div>
+      <div class="tip gold"><span class="t-no">金</span><span><b>通胀视角：</b>贷款是"今天借钱、以后还"，通胀会让实际负担逐年缩水；但前提是你的收入能跟上通胀，且利率不上浮。</span></div>
+      <div class="tip"><span class="t-no">!</span><span><b>组合贷更省：</b>公积金贷（利率低）+ 商贷组合，比纯商贷可省数万至数十万利息，办理时主动要求。</span></div>
+      <div class="tip"><span class="t-no">!</span><span><b>"送面积"陷阱：</b>开发商赠送面积常摊入总价抬高单价，算清实用单价再比价；车位、储藏室单独计价，别打包进房价。</span></div>
+    </div>
+  </div>
+
+  <!-- 贷款率 -->
+  <div id="ht-loan" class="card">
+    <h3>贷款测算 · 正向 / 反向</h3>
+    <div class="ck-row" id="loanDirCk">
+      <button class="on" onclick="setLoanDir(0)">正向：算月供</button>
+      <button onclick="setLoanDir(1)">反向：算可贷</button>
+    </div>
+    <div class="fld-row">
+      <div class="fld"><label id="loanAmtLb">贷款金额 <b>¥</b></label><input class="in" id="lAmt" type="number" placeholder="如 2000000"></div>
+      <div class="fld"><label>年限（年）</label><input class="in" id="lYears" type="number" value="30"></div>
+    </div>
+    <div class="fld"><label>年利率 <b>%</b>（LPR 速查见下）</label><input class="in" id="lRate" type="number" value="3.6" step="0.01"></div>
+    <button class="btn" onclick="calcLoan()">计算</button>
+    <div class="res" id="lRes"></div>
+    <div class="card" style="margin-top:12px;padding:10px">
+      <h3 style="margin-bottom:6px">LPR 利率速查（参考）</h3>
+      <table class="cmp">
+        <tr><th>品种</th><th>参考利率</th><th>说明</th></tr>
+        <tr><td>5年期以上 LPR</td><td class="num">约 3.6%</td><td>房贷基准锚</td></tr>
+        <tr><td>公积金贷款（5年+）</td><td class="num">约 2.85%</td><td>首套，极优惠</td></tr>
+        <tr><td>公积金贷款（5年-）</td><td class="num">约 2.35%</td><td>首套</td></tr>
+        <tr><td>二套房贷</td><td class="num">LPR+20BP</td><td>约 3.8%</td></tr>
+      </table>
+      <div class="hint">注：LPR 每月 20 日公布，实际利率以银行当期为准。BP=基点，1BP=0.01%。</div>
+    </div>
+  </div>
+
+  <!-- 卖房 -->
+  <div id="ht-sell" class="card">
+    <h3>卖房盈亏 · 真实收益</h3>
+    <div class="fld-row">
+      <div class="fld"><label>买入价 <b>¥</b></label><input class="in" id="sIn" type="number" placeholder="如 2000000"></div>
+      <div class="fld"><label>卖出价 <b>¥</b></label><input class="in" id="sOut" type="number" placeholder="如 2600000"></div>
+    </div>
+    <div class="fld-row">
+      <div class="fld"><label>持有年限（年）</label><input class="in" id="sYears" type="number" value="5"></div>
+      <div class="fld"><label>首付比例 <b>%</b></label><input class="in" id="sDown" type="number" value="30"></div>
+    </div>
+    <div class="fld-row">
+      <div class="fld"><label>期间已付贷款利息 <b>¥</b></label><input class="in" id="sInterest" type="number" value="0"></div>
+      <div class="fld"><label>税费中介等 <b>¥</b></label><input class="in" id="sFee" type="number" value="0"></div>
+    </div>
+    <button class="btn" onclick="calcSell()">算一算 · 到底赚了多少</button>
+    <div class="res" id="sRes"></div>
+    <div class="tips">
+      <div class="tip"><span class="t-no">!</span><span><b>差价 ≠ 利润：</b>还贷利息、税费、中介费、装修折旧都要扣掉。很多人"账面赚 60 万"，实际年化还不如理财。</span></div>
+      <div class="tip gold"><span class="t-no">税</span><span><b>增值税：</b>满 2 年（普通住宅）免征；不满 2 年按 5.3% 左右缴纳。<b>个税：</b>满五唯一免征；否则按差额 20% 或全额 1%~2% 计。<b>契税：</b>买家承担，1%~3%。</span></div>
+      <div class="tip green"><span class="t-no">算</span><span><b>年化收益公式：</b>（净收益 ÷ 持有年限）÷ 首付投入。拿去和定存、理财并排比，才知道房子到底"赚不赚"。</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- 饮食记账 -->
+<div id="food" class="page">
+  <div class="topbar">
+    <button class="back" onclick="go('home')">‹</button>
+    <div class="title">饮食记账</div>
+  </div>
+  <div class="ledger-hero">
+    <div class="k">本月饮食总花费</div>
+    <div class="v" id="foodHero">¥0</div>
+    <div class="bar-wrap"><div class="bar" id="foodBar" style="width:0%"></div></div>
+    <div class="sub" id="foodSub">尚未设置月预算 · 点击设置</div>
+    <div class="ledger-hist" id="foodHist"></div>
+  </div>
+  <div class="ck-row" id="foodRangeCk">
+    <button class="on" onclick="setRange('food','day')">今日</button>
+    <button onclick="setRange('food','week')">本周</button>
+    <button onclick="setRange('food','month')">本月</button>
+    <button onclick="setRange('food','lastmonth')">上月</button>
+    <button onclick="setRange('food','all')">累计</button>
+  </div>
+  <div class="card" style="padding:8px 14px">
+    <div class="lg-list" id="foodList"></div>
+  </div>
+  <button class="btn gold" onclick="openLedger('food')">＋ 记一笔饮食</button>
+</div>
+
+<!-- 出行记账 -->
+<div id="travel" class="page">
+  <div class="topbar">
+    <button class="back" onclick="go('home')">‹</button>
+    <div class="title">出行记账</div>
+  </div>
+  <div class="ledger-hero">
+    <div class="k">本月出行总花费</div>
+    <div class="v" id="travelHero">¥0</div>
+    <div class="bar-wrap"><div class="bar" id="travelBar" style="width:0%"></div></div>
+    <div class="sub" id="travelSub">尚未设置月预算 · 点击设置</div>
+    <div class="ledger-hist" id="travelHist"></div>
+  </div>
+  <div class="ck-row" id="travelRangeCk">
+    <button class="on" onclick="setRange('travel','day')">今日</button>
+    <button onclick="setRange('travel','week')">本周</button>
+    <button onclick="setRange('travel','month')">本月</button>
+    <button onclick="setRange('travel','lastmonth')">上月</button>
+    <button onclick="setRange('travel','all')">累计</button>
+  </div>
+  <div class="card" style="padding:8px 14px">
+    <div class="lg-list" id="travelList"></div>
+  </div>
+  <button class="btn gold" onclick="openLedger('travel')">＋ 记一笔出行</button>
+</div>
+
+<!-- 百货记账 -->
+<div id="shop" class="page">
+  <div class="topbar">
+    <button class="back" onclick="go('home')">‹</button>
+    <div class="title">百货记账</div>
+  </div>
+  <div class="ledger-hero">
+    <div class="k">本月百货总花费</div>
+    <div class="v" id="shopHero">¥0</div>
+    <div class="bar-wrap"><div class="bar" id="shopBar" style="width:0%"></div></div>
+    <div class="sub" id="shopSub">尚未设置月预算 · 点击设置</div>
+    <div class="ledger-hist" id="shopHist"></div>
+  </div>
+  <div class="ck-row" id="shopRangeCk">
+    <button class="on" onclick="setRange('shop','day')">今日</button>
+    <button onclick="setRange('shop','week')">本周</button>
+    <button onclick="setRange('shop','month')">本月</button>
+    <button onclick="setRange('shop','lastmonth')">上月</button>
+    <button onclick="setRange('shop','all')">累计</button>
+  </div>
+  <div class="card" style="padding:8px 14px">
+    <div class="lg-list" id="shopList"></div>
+  </div>
+  <button class="btn gold" onclick="openLedger('shop')">＋ 记一笔百货</button>
+</div>
+
+<!-- 储蓄 -->
+<div id="save" class="page">
+  <div class="topbar">
+    <button class="back" onclick="go('home')">‹</button>
+    <div class="title">储蓄</div>
+  </div>
+  <div class="save-tabs" id="saveTabs">
+    <button class="on" onclick="saveTab(0)">目标反推</button>
+    <button onclick="saveTab(1)">定期存款</button>
+    <button onclick="saveTab(2)">复利定投</button>
+    <button onclick="saveTab(3)">攒钱法</button>
+    <button onclick="saveTab(4)">利率对比</button>
+    <button onclick="saveTab(5)">工资提醒</button>
+    <button onclick="saveTab(6)">智存规划</button>
+  </div>
+
+  <!-- 目标反推 -->
+  <div class="save-tab show" id="st0">
+    <div class="card">
+      <h3>储蓄目标 · 反推每月需存</h3>
+      <div class="fld-row">
+        <div class="fld"><label>目标金额 <b>¥</b></label><input class="in" id="gTarget" type="number" placeholder="如 120000"></div>
+        <div class="fld"><label>达成期限（月）</label><input class="in" id="gMonths" type="number" value="24"></div>
+      </div>
+      <button class="btn" onclick="calcGoal()">反推每月需存</button>
+      <div class="res" id="gRes"></div>
+    </div>
+    <div class="card">
+      <h3>实存进度</h3>
+      <div class="plan-progress" id="gProgress">
+        <div class="pct">0%</div>
+        <div class="txt">尚未设定目标</div>
+      </div>
+      <div class="bar-wrap"><div class="bar" id="gBar" style="width:0%"></div></div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <input class="in" id="gAddAmt" type="number" placeholder="本次存入 ¥" style="flex:1">
+        <button class="btn gold" style="width:90px;flex-shrink:0" onclick="addSaveRecord()">存入</button>
+      </div>
+      <div class="lg-list" id="gRecList"></div>
+    </div>
+  </div>
+
+  <!-- 定期存款 -->
+  <div class="save-tab" id="st1">
+    <div class="card">
+      <h3>定期存款测算（单利）</h3>
+      <div class="fld-row">
+        <div class="fld"><label>本金 <b>¥</b></label><input class="in" id="dPrincipal" type="number" placeholder="如 100000"></div>
+        <div class="fld"><label>年利率 <b>%</b></label><input class="in" id="dRate" type="number" value="1.8" step="0.05"></div>
+      </div>
+      <div class="fld"><label>期限（年，支持小数如 0.5）</label><input class="in" id="dYears" type="number" value="3" step="0.5"></div>
+      <button class="btn" onclick="calcDeposit()">计算到期本息</button>
+      <div class="res" id="dRes"></div>
+    </div>
+  </div>
+
+  <!-- 复利定投 -->
+  <div class="save-tab" id="st2">
+    <div class="card">
+      <h3>复利定投 · 看见时间的威力</h3>
+      <div class="fld-row">
+        <div class="fld"><label>每月定投 <b>¥</b></label><input class="in" id="cMonthly" type="number" placeholder="如 1000"></div>
+        <div class="fld"><label>年化收益 <b>%</b></label><input class="in" id="cRate" type="number" value="5" step="0.1"></div>
+      </div>
+      <div class="fld"><label>投资年限（年）</label><input class="in" id="cYears" type="number" value="20"></div>
+      <button class="btn" onclick="calcCompound()">计算复利终值</button>
+      <div class="res" id="cRes"></div>
+    </div>
+  </div>
+
+  <!-- 攒钱法 -->
+  <div class="save-tab" id="st3">
+    <div class="card">
+      <h3>52 周存钱法</h3>
+      <div class="hint">第一周存 10 元，每周递增 10 元，52 周共存 <b>13,780 元</b>。适合收入稳定者。</div>
+      <button class="btn gold" onclick="gen52()">生成 52 周计划表</button>
+      <div class="lg-list" id="plan52"></div>
+    </div>
+    <div class="card">
+      <h3>365 存钱法</h3>
+      <div class="hint">第 1 天存 1 元，每天递增 1 元，一年共存 <b>66,795 元</b>。也可倒序（从 365 开始递减）减轻后期压力。</div>
+      <button class="btn gold" onclick="gen365()">生成 365 天计划表</button>
+      <div class="lg-list" id="plan365"></div>
+    </div>
+  </div>
+
+  <!-- 利率对比 -->
+  <div class="save-tab" id="st4">
+    <div class="card">
+      <h3>钱放哪里 · 利率对比（参考）</h3>
+      <table class="cmp">
+        <tr><th>渠道</th><th>参考年化</th><th>特点</th></tr>
+        <tr><td>活期存款</td><td class="num">0.1%~0.2%</td><td>随取随用</td></tr>
+        <tr><td>通知存款</td><td class="num">0.5%~0.9%</td><td>7天起存</td></tr>
+        <tr><td>定期 1 年</td><td class="num">1.1%~1.45%</td><td>保本</td></tr>
+        <tr><td>定期 3 年</td><td class="num">1.5%~1.9%</td><td>保本</td></tr>
+        <tr><td>国债（3~5年）</td><td class="num">2.0%~2.6%</td><td>保本，可转让</td></tr>
+        <tr><td>货币基金（余额宝类）</td><td class="num">1.3%~1.9%</td><td>灵活，微风险</td></tr>
+        <tr><td>低风险理财</td><td class="num">2.0%~3.2%</td><td>中低风险</td></tr>
+        <tr><td>指数基金定投（长期）</td><td class="num">5%~8%（预期）</td><td>有波动，非保本</td></tr>
+      </table>
+      <div class="hint">注：利率随市场波动，以上为近期常见区间，实际以银行/平台当期为准。</div>
+    </div>
+  </div>
+
+  <!-- 工资提醒 -->
+  <div class="save-tab" id="st5">
+    <div class="card">
+      <h3>强制储蓄 · 先存后花</h3>
+      <div class="fld-row">
+        <div class="fld"><label>每月工资日（几号）</label><input class="in" id="salDay" type="number" min="1" max="31" placeholder="如 10"></div>
+        <div class="fld"><label>每月强制储蓄 <b>¥</b></label><input class="in" id="salAmt" type="number" placeholder="如 2000"></div>
+      </div>
+      <button class="btn" onclick="saveSalary()">保存提醒设置</button>
+      <div class="res" id="salRes"></div>
+      <div class="tips">
+        <div class="tip green"><span class="t-no">法</span><span><b>先存后花：</b>工资到账当天先把储蓄部分转走，剩下的才是可支配收入——这是最无痛的自律。</span></div>
+        <div class="tip"><span class="t-no">比</span><span><b>比例建议：</b>收入 10%~30% 作为储蓄线。存钱不是"花剩了再存"，而是"存完了再花"。</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 智存规划 -->
+  <div class="save-tab" id="st6">
+    <div class="card">
+      <h3>智存规划 · 让闲钱不闲</h3>
+      <div class="fld-row">
+        <div class="fld"><label>手头闲钱 / 已存金额 <b>¥</b></label><input class="in" id="zAmt" type="number" placeholder="默认为当前已存总额"></div>
+        <div class="fld" style="width:104px;flex-shrink:0"><label style="visibility:hidden">.</label><button class="btn gold" style="margin-top:0;padding:9px 0" onclick="zUseSaved()">取已存</button></div>
+      </div>
+      <div class="fld"><label>这笔钱的用途（选一下，规划更准）</label>
+        <div class="ck-row" id="zUseCk">
+          <button class="on" onclick="zPickUse(0)">随时要用</button>
+          <button onclick="zPickUse(1)">半年内可能用</button>
+          <button onclick="zPickUse(2)">长期不用(1年+)</button>
+        </div>
+      </div>
+      <button class="btn" onclick="zPlan()">智策规划</button>
+      <div class="res" id="zRes"></div>
+    </div>
+    <div class="card">
+      <h3>当前已存</h3>
+      <div class="two-col">
+        <div class="cell"><div class="k">储蓄总额</div><div class="v" id="zSaved">¥0</div></div>
+        <div class="cell"><div class="k">存入笔数</div><div class="v" id="zCnt">0</div></div>
+      </div>
+      <div class="lg-list" id="zRecList"></div>
+      <div class="hint">存入记录在「目标反推」页录入；此处实时汇总，可点「取已存」带入规划。</div>
+    </div>
+    <div class="card">
+      <h3>利率速查（可更新）</h3>
+      <table class="cmp" id="zRates"></table>
+      <div class="hint">注：利率为当前参考值，随市场波动。数据更新口子：代码内 SAVING_RATES 一处修改即可；后续可升级为自动获取最新利率。</div>
+    </div>
+  </div>
+</div>
+
+<!-- 记账弹窗 -->
+<div id="modal">
+  <div class="modal-box">
+    <h4 id="mTitle">记一笔</h4>
+    <div class="fld"><label>金额 <b>¥</b></label><input class="in" id="mAmt" type="number" placeholder="0.00"></div>
+    <div class="fld"><label>分类</label><div class="ck-row" id="mSubs"></div></div>
+    <div class="fld">
+      <label>日期 <b style="color:#8a7a55;font-weight:normal">（点选）</b></label>
+      <div class="fld-row">
+        <div class="fld date-pick" style="margin-bottom:0">
+          <input class="in" id="mDate" type="text" readonly placeholder="点此选择日期" onclick="toggleCal()">
+          <div class="cal" id="calPanel">
+            <div class="cal-head">
+              <button type="button" onclick="calShift(-1)">‹</button>
+              <span class="ym" id="calYM"></span>
+              <button type="button" onclick="calShift(1)">›</button>
+            </div>
+            <div class="cal-week"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+            <div class="cal-grid" id="calGrid"></div>
+            <div class="cal-foot">
+              <button type="button" onclick="calToday()">回到今天</button>
+              <button type="button" class="primary" onclick="toggleCal()">完成</button>
+            </div>
+          </div>
+        </div>
+        <div class="fld" style="width:86px;flex-shrink:0;margin-bottom:0">
+          <label style="visibility:hidden">.</label>
+          <button type="button" class="btn ghost" style="margin-top:0;padding:9px 0" onclick="calToday()">今天</button>
+        </div>
+      </div>
+    </div>
+    <div class="fld"><label>备注</label><input class="in" id="mNote" placeholder="可留空"></div>
+    <div class="modal-btns">
+      <button class="no" onclick="closeModal()">取消</button>
+      <button class="ok" onclick="confirmLedger()">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================ 市易清鉴 · 核心逻辑 ================ */
+/* 存储命名空间统一使用 syqj_*，与「专注百宝箱」zbx_* 隔离 */
+
+/* ---------- 基础工具 ---------- */
+function $(id){return document.getElementById(id)}
+function fmt(n){
+  n=Number(n)||0;var neg=n<0?'-':'';n=Math.abs(n);
+  return neg+'¥'+n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+}
+function fmt0(n){
+  n=Number(n)||0;var neg=n<0?'-':'';n=Math.abs(n);
+  return neg+'¥'+Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g,',');
+}
+function toast(msg){
+  var t=$('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t=setTimeout(function(){t.classList.remove('show')},2200);
+}
+function pad(n){return n<10?'0'+n:''+n}
+function todayStr(){
+  var d=new Date();
+  return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+}
+function sumArr(arr){return arr.reduce(function(s,x){return s+x.amt},0)}
+/* 安全读取本地存储 JSON：键不存在或数据损坏时返回 null，不抛异常 */
+function sjParse(key){try{return JSON.parse(localStorage.getItem(key))||null}catch(e){return null}}
+
+/* ---------- 页面导航 ---------- */
+function go(id){
+  var ps=document.querySelectorAll('.page');
+  for(var i=0;i<ps.length;i++)ps[i].classList.remove('active');
+  var el=$(id);
+  if(el){el.classList.add('active');el.scrollTop=0}
+  if(id==='home')refreshSnap();
+  if(id==='food'||id==='travel'||id==='shop'||id==='house')renderLedger(id);
+  if(id==='save')refreshGoal();
+}
+
+/* ================ 一、住房板块 ================ */
+var HOUSE_TABS=['rent','own','buy','loan','sell'];
+function houseTab(t){
+  var cards=document.querySelectorAll('#house .card');
+  for(var i=0;i<cards.length;i++){
+    if(cards[i].id&&cards[i].id.indexOf('ht-')===0)cards[i].style.display='none';
+  }
+  var el=$('ht-'+t);if(el)el.style.display='block';
+  var bs=document.querySelectorAll('#houseSeg button');
+  for(var j=0;j<bs.length;j++)bs[j].classList.toggle('on',HOUSE_TABS[j]===t);
+}
+
+/* ---------- 城市租售比参考库（省会城市为主；广州/西安细化） ---------- */
+var CITY={
+  '全国均值':[1.4,2.2,'全国百城平均租售比近年约1.5%~2%'],
+  '北京':[1.0,1.5,'一线城市，租金回报普遍偏低，自住刚需为主'],
+  '上海':[1.1,1.6,'一线城市，租金回报偏低'],
+  '广州':[1.3,1.9,'细分：天河1.2~1.6｜越秀1.4~1.8｜海珠1.3~1.7｜荔湾1.5~2.0｜番禺1.8~2.4｜增城2.0~2.6'],
+  '深圳':[1.0,1.4,'一线城市，租金回报全国最低梯队'],
+  '天津':[1.8,2.4,'北方二线，回报中规中矩'],
+  '重庆':[2.2,3.0,'直辖市中回报较高'],
+  '石家庄':[1.9,2.5,''],
+  '太原':[1.8,2.4,''],
+  '呼和浩特':[2.3,3.0,''],
+  '沈阳':[2.0,2.8,''],
+  '长春':[2.2,2.9,''],
+  '哈尔滨':[2.2,3.0,''],
+  '南京':[1.4,1.9,''],
+  '杭州':[1.3,1.8,''],
+  '合肥':[1.6,2.1,''],
+  '福州':[1.5,2.0,''],
+  '南昌':[2.0,2.7,''],
+  '济南':[1.7,2.3,''],
+  '郑州':[1.9,2.6,''],
+  '武汉':[1.7,2.3,''],
+  '长沙':[2.2,2.9,''],
+  '南宁':[2.1,2.8,''],
+  '海口':[1.6,2.2,''],
+  '成都':[1.9,2.6,''],
+  '贵阳':[2.2,2.9,''],
+  '昆明':[1.8,2.5,''],
+  '拉萨':[1.5,2.0,''],
+  '西安':[1.7,2.3,'细分：高新1.5~2.0｜曲江1.5~2.1｜雁塔1.7~2.2｜未央1.9~2.5｜长安2.0~2.7'],
+  '兰州':[2.0,2.7,''],
+  '西宁':[2.2,2.8,''],
+  '银川':[2.3,3.0,''],
+  '乌鲁木齐':[2.1,2.8,'']
+};
+
+/* 1-1 租售比 · 租客视角 */
+function calcRent(){
+  var city=$('rCity').value;
+  var price=+$('rPrice').value,rent=+$('rRent').value;
+  if(!(price>0)||!(rent>0)){toast('请填写房价与月租金');return}
+  var yr=rent*12;
+  var ratio=yr/price*100;
+  var ref=CITY[city]||[1.4,2.2];
+  var cls,verdict;
+  if(ratio>=4){cls='ok';verdict='租不如买 · 这套房长期收租/自住都划算'}
+  else if(ratio>=2.5){cls='ok';verdict='租买两可 · 看你的居住规划与首付能力'}
+  else if(ratio>=2){cls='warn';verdict='房价偏贵 · 若仅为居住，先租更稳'}
+  else{cls='bad';verdict='房价透支 · 从回报看，租房明显更理性'}
+  var h='';
+  h+='<div class="big '+(ratio>=4?'green':ratio<2?'red':'')+'">租售比 '+ratio.toFixed(2)+'%</div>';
+  h+='<div class="verdict '+cls+'">'+verdict+'</div>';
+  h+='<div class="line">年租金 <b>'+fmt0(yr)+'</b>（'+fmt0(rent)+'/月 ×12）</div>';
+  h+='<div class="line">静态回本年限 <b>'+fmt0(price/yr)+'年</b>（不扣空置与维护）</div>';
+  h+='<div class="line">'+city+'参考租售比 <b class="'+(ratio<ref[0]?'r':ratio>ref[1]?'g':'y')+'">'+ref[0].toFixed(1)+'% ~ '+ref[1].toFixed(1)+'%</b></div>';
+  if(ratio<ref[0])h+='<div class="line">相对该市参考，本房回报<span class="r">低于下限</span>——价格可能偏高或租金偏低，谨慎。</div>';
+  else if(ratio>ref[1])h+='<div class="line">相对该市参考，本房回报<span class="g">高于上限</span>——租金回报在同城算突出。</div>';
+  if(CITY[city]&&CITY[city][2])h+='<div class="line" style="font-size:12px;color:#8a7a55">'+CITY[city][2]+'</div>';
+  if(ratio<2)h+='<div class="line">若为自住：<span class="g">租房更划算</span>——省下的首付拿去理财（年化4%+），长期大概率跑赢房价涨幅。</div>';
+  else if(ratio>=4)h+='<div class="line">若为投资：<span class="g">收租回报健康</span>，但仍需盯住房价波动与空置风险。</div>';
+  else h+='<div class="line">中性区间：自住看需求；投资请到「出租」页做净回报精算。</div>';
+  var el=$('rRes');el.innerHTML=h;el.classList.add('show');
+}
+
+/* 1-2 出租回报 · 房东视角 */
+function calcOwn(){
+  var cost=+$('oCost').value,rent=+$('oRent').value;
+  var empty=+$('oEmpty').value||0,fee=+$('oFee').value||0,fix=+$('oFix').value||0;
+  if(!(cost>0)||!(rent>0)){toast('请填写购房成本与月租金');return}
+  var gross=rent*12;
+  var net=rent*(12-empty)-fee-fix;
+  var gr=gross/cost*100,nr=net/cost*100;
+  var cls,verdict;
+  if(net<=0){cls='bad';verdict='净回报为负 · 收租连成本都覆盖不了，不如卖掉'}
+  else if(nr>=4){cls='ok';verdict='净回报优秀 · 超过多数稳健理财，值得持有'}
+  else if(nr>=2.5){cls='ok';verdict='净回报尚可 · 跑赢定存，可继续持有'}
+  else if(nr>=1.5){cls='warn';verdict='回报偏弱 · 不如理财，只能指望房价上涨'}
+  else{cls='bad';verdict='回报很差 · 相当于钱在贬值，建议重新评估'}
+  var h='';
+  h+='<div class="big '+(nr>=4?'green':nr<2.5?'red':'')+'">净回报率 '+nr.toFixed(2)+'%</div>';
+  h+='<div class="verdict '+cls+'">'+verdict+'</div>';
+  h+='<div class="line">毛回报率 <b>'+gr.toFixed(2)+'%</b> · 年毛租金 '+fmt0(gross)+'</div>';
+  h+='<div class="line">年净租金 <b>'+fmt0(net)+'</b>（空置'+empty+'个月/物业'+fmt0(fee)+'/维修'+fmt0(fix)+'）</div>';
+  h+='<div class="line">回本年限 <b>'+(net>0?(cost/net).toFixed(1)+'年':'—')+'</b>（按净收益）</div>';
+  h+='<div class="line">对比：3年定存1.8% → '+fmt0(cost*0.018)+'/年；低风险理财3% → '+fmt0(cost*0.03)+'/年。</div>';
+  h+='<div class="line">若房价年均不涨<span class="r">'+nr.toFixed(2)+'%</span>以上，持有收租跑不赢理财——这就是"以租养贷"的真相。</div>';
+  var el=$('oRes');el.innerHTML=h;el.classList.add('show');
+}
+
+/* 1-3 买房全解析 · 全款 vs 贷款 */
+var buyMode=0;
+function setBuyMode(m){
+  buyMode=m;
+  var bs=document.querySelectorAll('#bModeCk button');
+  for(var i=0;i<bs.length;i++)bs[i].classList.toggle('on',i===m);
+}
+function calcBuy(){
+  var price=+$('bPrice').value,downPct=+$('bDown').value||30;
+  var years=+$('bYears').value||30,rate=+$('bRate').value||3.6;
+  var income=+$('bIncome').value||0;
+  if(!(price>0)){toast('请填写房屋总价');return}
+  if(downPct<0||downPct>100){toast('首付比例应在0~100之间');return}
+  var down=price*downPct/100,loan=price-down;
+  var n=Math.round(years*12),r=rate/100/12;
+  var monthly,totalInt,firstM,lastM;
+  if(buyMode===0){
+    monthly=r>0?loan*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1):loan/n;
+    totalInt=monthly*n-loan;firstM=lastM=monthly;
+  }else{
+    var base=loan/n;
+    firstM=base+loan*r;
+    lastM=base+(loan-base*(n-1))*r;
+    totalInt=loan*r*(n+1)/2;monthly=firstM;
+  }
+  var totalPay=loan+totalInt,totalOut=down+totalPay;
+  var intPct=totalInt/price*100;
+  var h='';
+  if(buyMode===0){
+    h+='<div class="big '+(intPct>=60?'red':'')+'">月供 '+fmt(monthly)+'</div>';
+    h+='<div class="line">'+years+'年 · 等额本息 · 月供恒定不变</div>';
+  }else{
+    h+='<div class="big">首月 '+fmt(firstM)+'</div>';
+    h+='<div class="line">等额本金 · 末月 '+fmt(lastM)+' · 每月递减约 '+fmt(loan*r/n)+'</div>';
+  }
+  var verdict,cls;
+  if(income>0){
+    var pm=monthly/income*100;
+    if(pm>50){cls='bad';verdict='月供占收入 '+pm.toFixed(0)+'% · 压力极大，银行大概率拒贷，慎入'}
+    else if(pm>35){cls='warn';verdict='月供占收入 '+pm.toFixed(0)+'% · 偏高，生活质量将被明显压缩'}
+    else if(pm>25){cls='ok';verdict='月供占收入 '+pm.toFixed(0)+'% · 在安全线内（建议≤30%）'}
+    else{cls='ok';verdict='月供占收入 '+pm.toFixed(0)+'% · 压力较小，留有余地'}
+  }else{
+    if(intPct>=80){cls='bad';verdict='总利息高达房价的 '+intPct.toFixed(0)+'% · 贷款代价极其沉重'}
+    else if(intPct>=50){cls='warn';verdict='总利息约为房价的 '+intPct.toFixed(0)+'% · 常见水平，务必权衡'}
+    else{cls='ok';verdict='总利息约为房价的 '+intPct.toFixed(0)+'% · 当前利率下负担较轻'}
+  }
+  h+='<div class="verdict '+cls+'">'+verdict+'</div>';
+  h+='<div class="line">贷款 <b>'+fmt0(loan)+'</b>（首付 '+fmt0(down)+' = '+downPct+'%） · 年利率 '+rate+'%</div>';
+  h+='<table class="cmp"><tr><th></th><th>全款方案</th><th>贷款方案</th></tr>';
+  h+='<tr><td>首付</td><td class="num">'+fmt0(price)+'</td><td class="num">'+fmt0(down)+'</td></tr>';
+  h+='<tr><td>贷款本金</td><td class="num">0</td><td class="num">'+fmt0(loan)+'</td></tr>';
+  h+='<tr><td>月供</td><td class="num">—</td><td class="num">'+fmt(monthly)+'</td></tr>';
+  h+='<tr><td>支付利息</td><td class="num">0</td><td class="num r">'+fmt0(totalInt)+'</td></tr>';
+  h+='<tr><td>总支出</td><td class="num">'+fmt0(price)+'</td><td class="num">'+fmt0(totalOut)+'</td></tr>';
+  h+='<tr class="hl"><td>差额</td><td class="num" colspan="2">贷款比全款多付 '+fmt0(totalOut-price)+'（全部为利息）</td></tr></table>';
+  h+='<div class="line">贷款总支出 ≈ 房价的 <b class="r">'+(totalOut/price).toFixed(2)+'倍</b> ——这就是"买房养银行"的真实代价。</div>';
+  h+='<div class="line">若首付资金本可年化4%理财，全款的<b class="y">机会成本</b>约为 '+fmt0(price*0.04)+'/年，两者需综合权衡。</div>';
+  if(income<=0)h+='<div class="line" style="color:#8a7a55">填写月收入可自动做月供压力测试。</div>';
+  var el=$('bRes');el.innerHTML=h;el.classList.add('show');
+}
+
+/* 1-4 贷款测算 · 正向/反向 */
+var loanDir=0;
+function setLoanDir(d){
+  loanDir=d;
+  var bs=document.querySelectorAll('#loanDirCk button');
+  for(var i=0;i<bs.length;i++)bs[i].classList.toggle('on',i===d);
+  $('loanAmtLb').innerHTML=d===0?'贷款金额 <b>¥</b>':'每月可承受月供 <b>¥</b>';
+}
+function calcLoan(){
+  var amt=+$('lAmt').value,years=+$('lYears').value||30,rate=+$('lRate').value||3.6;
+  if(!(amt>0)){toast('请填写金额');return}
+  var n=Math.round(years*12),r=rate/100/12;
+  var h='';
+  if(loanDir===0){
+    var monthly=r>0?amt*r*Math.pow(1+r,n)/(Math.pow(1+r,n)-1):amt/n;
+    var totalInt=monthly*n-amt;
+    var base=amt/n;
+    var firstM=base+amt*r,lastM=base+(amt-base*(n-1))*r;
+    var int2=amt*r*(n+1)/2;
+    h+='<div class="big">月供 '+fmt(monthly)+'</div>';
+    h+='<div class="line">贷款 <b>'+fmt0(amt)+'</b> · '+years+'年 · 年利率 '+rate+'%</div>';
+    h+='<div class="line">总还款 <b>'+fmt0(monthly*n)+'</b> · 其中利息 <b class="r">'+fmt0(totalInt)+'</b></div>';
+    h+='<table class="cmp"><tr><th>方式</th><th>首月月供</th><th>末月月供</th><th>总利息</th></tr>';
+    h+='<tr class="hl"><td>等额本息</td><td class="num">'+fmt(monthly)+'</td><td class="num">'+fmt(monthly)+'</td><td class="num">'+fmt0(totalInt)+'</td></tr>';
+    h+='<tr><td>等额本金</td><td class="num">'+fmt(firstM)+'</td><td class="num">'+fmt(lastM)+'</td><td class="num g">'+fmt0(int2)+'</td></tr></table>';
+    h+='<div class="line">等额本金总利息少 <b class="g">'+fmt0(totalInt-int2)+'</b>，但前期月供高 '+fmt(firstM-monthly)+'——收入稳选本金，现金流紧选本息。</div>';
+  }else{
+    var m=amt;
+    var loanP=r>0?m*(Math.pow(1+r,n)-1)/(r*Math.pow(1+r,n)):m*n;
+    var totalInt=m*n-loanP;
+    h+='<div class="big green">最多可贷 '+fmt0(loanP)+'</div>';
+    h+='<div class="line">月供 <b>'+fmt0(m)+'</b> · '+years+'年 · 年利率 '+rate+'%</div>';
+    h+='<div class="line">总还款 <b>'+fmt0(m*n)+'</b> · 其中利息 <b class="r">'+fmt0(totalInt)+'</b></div>';
+    h+='<div class="line">按30%首付推算，可承受房价约 <b>'+fmt0(loanP/0.7)+'</b>（'+fmt0(loanP/0.7*0.3)+'首付 + '+fmt0(loanP)+'贷款）</div>';
+    h+='<div class="line" style="color:#8a7a55">实际可贷还受收入流水、征信、房龄影响，以银行审批为准。</div>';
+  }
+  var el=$('lRes');el.innerHTML=h;el.classList.add('show');
+}
+
+/* 1-5 卖房盈亏 · 真实收益 */
+function calcSell(){
+  var sin=+$('sIn').value,sout=+$('sOut').value;
+  var years=+$('sYears').value||5,downPct=+$('sDown').value||30;
+  var interest=+$('sInterest').value||0,fee=+$('sFee').value||0;
+  if(!(sin>0)||!(sout>0)){toast('请填写买入价与卖出价');return}
+  var diff=sout-sin,net=diff-interest-fee;
+  var invest=sin*downPct/100;
+  var totalRet=invest>0?net/invest*100:0;
+  var annual=invest>0&&years>0?net/years/invest*100:0;
+  var cls,verdict;
+  if(net<0){cls='bad';verdict='实际亏损 '+fmt0(-net)+' · 账面差价被利息税费吃光还不够'}
+  else if(annual>=4){cls='ok';verdict='简单年化 '+annual.toFixed(1)+'% · 跑赢多数稳健理财'}
+  else if(annual>=2.5){cls='ok';verdict='简单年化 '+annual.toFixed(1)+'% · 略胜定存，勉强合格'}
+  else{cls='warn';verdict='简单年化仅 '+annual.toFixed(1)+'% · 还不如存定期，白忙一场'}
+  var h='';
+  h+='<div class="big '+(net<0?'red':'green')+'">净收益 '+fmt0(net)+'</div>';
+  h+='<div class="verdict '+cls+'">'+verdict+'</div>';
+  h+='<table class="cmp"><tr><th>项目</th><th>金额</th></tr>';
+  h+='<tr><td>表面差价</td><td class="num">+'+fmt0(diff)+'</td></tr>';
+  h+='<tr><td>期间已付利息</td><td class="num r">-'+fmt0(interest)+'</td></tr>';
+  h+='<tr><td>税费中介等</td><td class="num r">-'+fmt0(fee)+'</td></tr>';
+  h+='<tr class="hl"><td>真实净收益</td><td class="num">'+fmt0(net)+'</td></tr></table>';
+  h+='<div class="line">首付投入 <b>'+fmt0(invest)+'</b> · 持有 '+years+'年</div>';
+  h+='<div class="line">总收益率 <b>'+(net>=0?'+':'')+totalRet.toFixed(1)+'%</b> · 简单年化 <b class="'+(annual>=2.5?'g':'r')+'">'+(annual>=0?'+':'')+annual.toFixed(2)+'%/年</b></div>';
+  h+='<div class="line">同期若存3年定存（1.8%），'+fmt0(invest)+'可获利息 '+fmt0(invest*0.018*years)+' —— 对比便知房子是否真赚。</div>';
+  h+='<div class="line" style="color:#8a7a55">注：年化为"净收益÷年限÷首付"的简单算法，未计复利与资金占用细节，用于横向对比足够。</div>';
+  var el=$('sRes');el.innerHTML=h;el.classList.add('show');
+}
+
+/* ================ 二、记账板块（饮食/出行/百货 独立） ================ */
+var LEDGER_KEYS={
+  food:{name:'饮食',subs:['早餐','午餐','晚餐','零食饮品','水果','聚餐']},
+  travel:{name:'出行',subs:['公交地铁','打车','加油','停车','高铁机票','维修保养']},
+  shop:{name:'百货',subs:['日用百货','衣物鞋包','数码家电','美妆护肤','家居','其他']},
+  house:{name:'住房',subs:['房租','房贷','物业费','水电燃气','维修','其他']}
+};
+var ranges={food:'day',travel:'day',shop:'day',house:'day'};
+
+function getLedger(){try{return JSON.parse(localStorage.getItem('syqj_ledger'))||[]}catch(e){return[]}}
+function saveLedger(list){localStorage.setItem('syqj_ledger',JSON.stringify(list))}
+function getBudget(){try{return JSON.parse(localStorage.getItem('syqj_budget'))||{}}catch(e){return{}}}
+
+function setRange(k,r){
+  ranges[k]=r;
+  var bs=document.querySelectorAll('#'+k+'RangeCk button');
+  var map=['day','week','month','lastmonth','all'];
+  for(var i=0;i<bs.length;i++)bs[i].classList.toggle('on',map[i]===r);
+  renderLedger(k);
+}
+function renderLedger(k){
+  var cfg=LEDGER_KEYS[k];
+  var list=getLedger().filter(function(x){return x.k===k});
+  var now=new Date();
+  var today=todayStr(),ym=today.slice(0,7);
+  var monthList=list.filter(function(x){return x.date.indexOf(ym)===0});
+  var monthSum=sumArr(monthList);
+  $(''+k+'Hero').textContent=fmt0(monthSum);
+  var bud=getBudget()[k];
+  var bar=$(''+k+'Bar'),sub=$(''+k+'Sub'),hero=$(''+k+'Hero');
+  if(bud>0){
+    var pct=Math.min(100,monthSum/bud*100);
+    bar.style.width=pct+'%';
+    bar.classList.toggle('over',monthSum>bud);
+    hero.classList.toggle('over',monthSum>bud);
+    sub.innerHTML='月预算 <b>'+fmt0(bud)+'</b> · '+(monthSum>bud
+      ?'已超支 <b style="color:#b03a2e">'+fmt0(monthSum-bud)+'</b>'
+      :'剩余 <b>'+fmt0(bud-monthSum)+'</b>')+' · <a href="javascript:void(0)" onclick="openBudget(\''+k+'\')" style="color:#b8860b">改预算</a>';
+  }else{
+    bar.style.width='0%';bar.classList.remove('over');hero.classList.remove('over');
+    sub.innerHTML='尚未设置月预算 · <a href="javascript:void(0)" onclick="openBudget(\''+k+'\')" style="color:#b8860b">点击设置</a>';
+  }
+  /* 历史对比：上月 / 前月 / 累计 / 环比 */
+  var lm=new Date(now.getFullYear(),now.getMonth()-1,1);
+  var lmStr=lm.getFullYear()+'-'+pad(lm.getMonth()+1);
+  var l2=new Date(now.getFullYear(),now.getMonth()-2,1);
+  var l2Str=l2.getFullYear()+'-'+pad(l2.getMonth()+1);
+  var lmSum=0,l2Sum=0,allSum=0;
+  list.forEach(function(x){
+    if(x.date.indexOf(lmStr)===0)lmSum+=x.amt;
+    if(x.date.indexOf(l2Str)===0)l2Sum+=x.amt;
+    allSum+=x.amt;
+  });
+  var histEl=$(''+k+'Hist');
+  if(histEl){
+    var momo=lmSum>0?Math.round((monthSum-lmSum)/lmSum*100):(monthSum>0?100:0);
+    var momoTxt=lmSum>0?((momo>=0?'+':'')+momo+'%'):'—';
+    histEl.innerHTML='上月 <b>'+fmt0(lmSum)+'</b> ｜ 前月 <b>'+fmt0(l2Sum)+'</b> ｜ 累计 <b>'+fmt0(allSum)+'</b> ｜ 环比 '+(momoTxt==='—'?'—':'<b>'+momoTxt+'</b>');
+  }
+  var rng=ranges[k];
+  var viewList=list.filter(function(x){
+    if(rng==='day')return x.date===today;
+    if(rng==='month')return x.date.indexOf(ym)===0;
+    if(rng==='lastmonth')return x.date.indexOf(lmStr)===0;
+    if(rng==='all')return true;
+    var d=new Date(x.date+'T00:00:00');
+    var dow=(now.getDay()+6)%7;
+    var monday=new Date(now.getFullYear(),now.getMonth(),now.getDate()-dow);
+    var sunday=new Date(now.getFullYear(),now.getMonth(),now.getDate()-dow+6,23,59,59);
+    return d>=monday&&d<=sunday;
+  });
+  viewList.sort(function(a,b){return a.date===b.date?b.ts-a.ts:b.date.localeCompare(a.date)});
+  var el=$(''+k+'List');
+  if(!viewList.length){
+    var emptyTxt=rng==='day'?'今日暂无记录':rng==='week'?'本周暂无记录':rng==='lastmonth'?'上月暂无记录':'暂无记录';
+    el.innerHTML='<div class="lg-empty">'+emptyTxt+'</div>';
+  }else{
+    var sumV=sumArr(viewList);
+    var h='';
+    viewList.forEach(function(x){
+      h+='<div class="lg-row"><div class="d">'+x.date.slice(5)+'</div><div class="s">'+x.sub+'</div><div class="t">'+(x.note||'')+'</div><div class="a">'+fmt0(x.amt)+'</div><button class="del" onclick="delLedger(\''+k+'\','+x.ts+')">✕</button></div>';
+    });
+    h+='<div class="lg-sum">'+viewList.length+'笔 · 合计 <b>'+fmt0(sumV)+'</b></div>';
+    el.innerHTML=h;
+  }
+}
+/* 记账弹窗 */
+var modalMode='ledger',curLedger='food',curSub='';
+function openLedger(k){
+  curLedger=k;modalMode='ledger';
+  $('mTitle').textContent='记一笔 · '+LEDGER_KEYS[k].name;
+  $('mAmt').value='';$('mNote').value='';
+  $('mDate').value=todayStr();selDate=todayStr();
+  var h='';
+  LEDGER_KEYS[k].subs.forEach(function(s,i){
+    h+='<button class="'+(i===0?'on':'')+'" onclick="pickSub(this,\''+s+'\')">'+s+'</button>';
+  });
+  $('mSubs').innerHTML=h;
+  curSub=LEDGER_KEYS[k].subs[0];
+  $('mSubs').closest('.fld').style.display='';
+  $('mDate').closest('.fld').style.display='';
+  $('mNote').closest('.fld').style.display='';
+  $('modal').classList.add('show');
+}
+function pickSub(btn,s){
+  curSub=s;
+  var ps=btn.parentNode.querySelectorAll('button');
+  for(var i=0;i<ps.length;i++)ps[i].classList.remove('on');
+  btn.classList.add('on');
+}
+function openBudget(k){
+  curLedger=k;modalMode='budget';
+  $('mTitle').textContent='设置月预算 · '+LEDGER_KEYS[k].name;
+  $('mAmt').value=getBudget()[k]||'';
+  $('mSubs').closest('.fld').style.display='none';
+  $('mDate').closest('.fld').style.display='none';
+  $('mNote').closest('.fld').style.display='none';
+  $('modal').classList.add('show');
+}
+function closeModal(){$('modal').classList.remove('show')}
+function confirmLedger(){
+  var amt=parseFloat($('mAmt').value);
+  if(!(amt>0)){toast('请输入有效金额');return}
+  if(modalMode==='budget'){
+    var bud=getBudget();
+    bud[curLedger]=amt;
+    localStorage.setItem('syqj_budget',JSON.stringify(bud));
+    closeModal();renderLedger(curLedger);refreshSnap();
+    toast('月预算已设为 '+fmt0(amt));
+    return;
+  }
+  var list=getLedger();
+  list.push({k:curLedger,amt:amt,sub:curSub,date:$('mDate').value||todayStr(),note:$('mNote').value.trim(),ts:Date.now()});
+  saveLedger(list);
+  closeModal();renderLedger(curLedger);refreshSnap();
+  toast('已记入 '+LEDGER_KEYS[curLedger].name+' · '+fmt0(amt));
+}
+function delLedger(k,ts){
+  var list=getLedger().filter(function(x){return !(x.k===k&&x.ts===ts)});
+  saveLedger(list);renderLedger(k);refreshSnap();
+}
+/* 首页快照：今日 / 本月 / 本年 / 累计 四档切换 */
+var snapMode='today';
+function snapTab(m){
+  snapMode=m;
+  var bs=document.querySelectorAll('#snapTabs button');
+  var map=['today','month','year','all'];
+  for(var i=0;i<bs.length;i++)bs[i].classList.toggle('on',map[i]===m);
+  refreshSnap();
+}
+function refreshSnap(){
+  var list=getLedger();
+  var now=new Date();
+  var t=todayStr(),ym=t.slice(0,7),yy=t.slice(0,4);
+  var todaySum=0,todayCnt=0,todaySub={};
+  var monthSum=0,monthCnt=0;
+  var yearSum=0,yearCnt=0;
+  var allSum=0,allCnt=0;
+  list.forEach(function(x){
+    if(x.date===t){todaySum+=x.amt;todayCnt++;todaySub[x.sub]=(todaySub[x.sub]||0)+x.amt;}
+    if(x.date.indexOf(ym)===0){monthSum+=x.amt;monthCnt++;}
+    if(x.date.indexOf(yy)===0){yearSum+=x.amt;yearCnt++;}
+    allSum+=x.amt;allCnt++;
+  });
+  var k1,k2,k3,v1,v2,v3,red=false;
+  if(snapMode==='today'){
+    var topSub='—',topAmt=0;
+    for(var s in todaySub){if(todaySub[s]>topAmt){topAmt=todaySub[s];topSub=s;}}
+    k1='今日已花';v1=fmt0(todaySum);
+    k2='今日笔数';v2=''+todayCnt;
+    k3='今日最多';v3=topSub==='—'?'—':topSub+' '+fmt0(topAmt);
+  }else if(snapMode==='month'){
+    k1='本月已花';v1=fmt0(monthSum);
+    k2='本月笔数';v2=''+monthCnt;
+    var bud=getBudget();
+  var budSum=(bud.food||0)+(bud.travel||0)+(bud.shop||0)+(bud.house||0);
+    k3=budSum>0?'本月剩余':'月预算';
+    v3=budSum>0?fmt0(budSum-monthSum):'未设';
+    red=budSum>0&&monthSum>budSum;
+  }else if(snapMode==='year'){
+    var daysPassed=Math.floor((now-new Date(now.getFullYear(),0,1))/86400000)+1;
+    if(daysPassed<1)daysPassed=1;
+    k1='本年已花';v1=fmt0(yearSum);
+    k2='本年笔数';v2=''+yearCnt;
+    k3='日均消费';v3=yearCnt>0?fmt0(yearSum/daysPassed):'—';
+  }else{
+    var firstDate=null;
+    list.forEach(function(x){if(!firstDate||x.date<firstDate)firstDate=x.date;});
+    var monthsUsed=1;
+    if(firstDate){
+      var fd=new Date(firstDate+'T00:00:00');
+      monthsUsed=(now.getFullYear()-fd.getFullYear())*12+(now.getMonth()-fd.getMonth())+1;
+      if(monthsUsed<1)monthsUsed=1;
+    }
+    k1='累计总消费';v1=fmt0(allSum);
+    k2='累计笔数';v2=''+allCnt;
+    k3='月均消费';v3=allSum>0?fmt0(allSum/monthsUsed):'—';
+  }
+  $('snapK1').textContent=k1;$('snapV1').textContent=v1;
+  $('snapK2').textContent=k2;$('snapV2').textContent=v2;
+  $('snapK3').textContent=k3;$('snapV3').textContent=v3;
+  $('snapV3').className='v'+(red?' red':'');
+}
+
+/* 自制日历（兼容无原生日期选择器的浏览器/WebView） */
+var calY=new Date().getFullYear(),calM=new Date().getMonth(),selDate=todayStr();
+function toggleCal(){
+  var p=$('calPanel');
+  if(p.classList.contains('show')){p.classList.remove('show');return;}
+  var parts=($('mDate').value||todayStr()).split('-');
+  calY=+parts[0]||new Date().getFullYear();
+  calM=((+parts[1])||new Date().getMonth()+1)-1;
+  renderCal();
+  p.classList.add('show');
+}
+function renderCal(){
+  $('calYM').textContent=calY+'年'+(calM+1)+'月';
+  var startDow=new Date(calY,calM,1).getDay();
+  var days=new Date(calY,calM+1,0).getDate();
+  var h='',t=todayStr();
+  for(var i=0;i<startDow;i++)h+='<span class="blank"></span>';
+  for(var d=1;d<=days;d++){
+    var ds=calY+'-'+pad(calM+1)+'-'+pad(d);
+    h+='<span class="day'+(ds===selDate?' sel':'')+(ds===t?' today':'')+'" onclick="calPick(\''+ds+'\')">'+d+'</span>';
+  }
+  $('calGrid').innerHTML=h;
+}
+function calShift(d){
+  calM+=d;
+  if(calM<0){calM=11;calY--;}
+  if(calM>11){calM=0;calY++;}
+  renderCal();
+}
+function calPick(ds){
+  selDate=ds;$('mDate').value=ds;
+  $('calPanel').classList.remove('show');
+}
+function calToday(){
+  selDate=todayStr();$('mDate').value=selDate;
+  var parts=selDate.split('-');
+  calY=+parts[0];calM=(+parts[1])-1;
+  renderCal();
+  $('calPanel').classList.remove('show');
+}
+
+/* ================ 三、储蓄板块（六项） ================ */
+function saveTab(i){
+  var tabs=document.querySelectorAll('.save-tab');
+  for(var t=0;t<tabs.length;t++)tabs[t].classList.toggle('show',t===i);
+  var bs=document.querySelectorAll('#saveTabs button');
+  for(var b=0;b<bs.length;b++)bs[b].classList.toggle('on',b===i);
+  if(i===3){gen52();gen365()}
+  if(i===5)renderSalary();
+  if(i===6)refreshZ();
+}
+
+/* 3-1 目标反推 */
+/* 统一读取储蓄目标：修正历史 bug（syqj_goal 与 syjq_goal 错拼），并自动迁移旧错拼数据 */
+function sjGetGoal(){
+  var g=null;
+  try{g=JSON.parse(localStorage.getItem('syqj_goal')||'')}catch(e){g=null}
+  if(!g){
+    try{
+      var old=localStorage.getItem('syjq_goal');
+      if(old){
+        g=JSON.parse(old);
+        localStorage.setItem('syqj_goal',JSON.stringify(g));
+        localStorage.removeItem('syjq_goal');
+      }
+    }catch(e){g=null}
+  }
+  return g||null;
+}
+function calcGoal(){
+  var target=+$('gTarget').value,months=+$('gMonths').value||24;
+  if(!(target>0)){toast('请填写目标金额');return}
+  var plain=target/months;
+  var r=0.02/12;
+  var withInt=r>0?target*r/(Math.pow(1+r,months)-1):plain;
+  var g=sjGetGoal()||{};
+  g.target=target;g.months=months;
+  localStorage.setItem('syqj_goal',JSON.stringify(g));
+  $('gRes').innerHTML=
+    '<div class="big gold">每月需存 '+fmt0(plain)+'</div>'+
+    '<div class="line">目标 <b>'+fmt0(target)+'</b> · '+months+'个月（约 '+(months/12).toFixed(1)+'年）</div>'+
+    '<div class="line">若按年化2%理财滚存，每月仅需 <b class="g">'+fmt0(withInt)+'</b>，'+months+'个月合计少存 '+fmt0(plain*months-withInt*months)+'</div>'+
+    '<div class="line">日均 '+fmt0(plain/30)+'，相当于每天少喝一杯奶茶。</div>';
+  $('gRes').classList.add('show');
+  refreshGoal();
+}
+function addSaveRecord(){
+  var amt=parseFloat($('gAddAmt').value);
+  if(!(amt>0)){toast('请输入存入金额');return}
+  var g=sjGetGoal();
+  if(!g||!g.target){toast('请先在上方设定目标');return}
+  g.records=g.records||[];
+  g.records.push({amt:amt,date:todayStr(),ts:Date.now()});
+  localStorage.setItem('syqj_goal',JSON.stringify(g));
+  $('gAddAmt').value='';
+  refreshGoal();
+  toast('已存入 '+fmt0(amt));
+}
+function delSaveRec(ts){
+  var g=sjGetGoal();
+  if(!g)return;
+  g.records=(g.records||[]).filter(function(x){return x.ts!==ts});
+  localStorage.setItem('syqj_goal',JSON.stringify(g));
+  refreshGoal();
+}
+function refreshGoal(){
+  var g=sjGetGoal();
+  var box=$('gProgress'),bar=$('gBar');
+  if(!g||!g.target){
+    box.querySelector('.pct').textContent='0%';
+    box.querySelector('.txt').textContent='尚未设定目标';
+    bar.style.width='0%';
+    $('gRecList').innerHTML='';
+    return;
+  }
+  var saved=sumArr(g.records||[]);
+  var pct=Math.min(100,saved/g.target*100);
+  box.querySelector('.pct').textContent=pct.toFixed(1)+'%';
+  var remain=g.target-saved;
+  var perMonth=g.target/g.months;
+  box.querySelector('.txt').innerHTML='已存 <b>'+fmt0(saved)+'</b> / '+fmt0(g.target)+' · '
+    +(remain>0?'还差 <b>'+fmt0(remain)+'</b>（按计划每月'+fmt0(perMonth)+'，约需 '+Math.ceil(remain/perMonth)+'个月）':'目标已达成 🎉');
+  bar.style.width=pct+'%';
+  var h='';
+  (g.records||[]).slice().reverse().forEach(function(x){
+    h+='<div class="lg-row"><div class="d">'+x.date.slice(5)+'</div><div class="t">存入</div><div class="a" style="color:#4d6b4d">+'+fmt0(x.amt)+'</div><button class="del" onclick="delSaveRec('+x.ts+')">✕</button></div>';
+  });
+  $('gRecList').innerHTML=h||'<div class="lg-empty">暂无存入记录，先设定目标吧</div>';
+}
+
+/* 3-2 定期存款 */
+function calcDeposit(){
+  var p=+$('dPrincipal').value,rate=+$('dRate').value||1.8,yrs=+$('dYears').value||3;
+  if(!(p>0)){toast('请填写本金');return}
+  var int=p*rate/100*yrs,total=p+int;
+  var alt=p*Math.pow(1+0.03,yrs)-p;
+  $('dRes').innerHTML=
+    '<div class="big gold">到期本息 '+fmt0(total)+'</div>'+
+    '<div class="line">本金 <b>'+fmt0(p)+'</b> · 年利率 '+rate+'% · '+yrs+'年（单利）</div>'+
+    '<div class="line">利息收益 <b class="g">+'+fmt0(int)+'</b> · 月均 '+fmt0(int/yrs/12)+'</div>'+
+    '<div class="line">若转投年化3%低风险理财，同期限收益约 <b class="g">+'+fmt0(alt)+'</b>，多出 '+fmt0(alt-int)+'（以风险为代价）</div>';
+  $('dRes').classList.add('show');
+}
+
+/* 3-3 复利定投 */
+function calcCompound(){
+  var m=+$('cMonthly').value,rate=+$('cRate').value||5,yrs=+$('cYears').value||20;
+  if(!(m>0)){toast('请填写每月定投金额');return}
+  var n=yrs*12,r=rate/100/12;
+  var fv=m*(Math.pow(1+r,n)-1)/r;
+  var invest=m*n,profit=fv-invest;
+  var fv10=m*(Math.pow(1+r,120)-1)/r;
+  $('cRes').innerHTML=
+    '<div class="big green">'+yrs+'年后 '+fmt0(fv)+'</div>'+
+    '<div class="verdict '+(rate>=5?'ok':'warn')+'">年化 '+rate+'% · 终值为总投入的 '+(fv/invest).toFixed(1)+'倍</div>'+
+    '<div class="line">总投入 <b>'+fmt0(invest)+'</b> · 收益 <b class="g">+'+fmt0(profit)+'</b></div>'+
+    '<div class="line">前10年投入 '+fmt0(m*120)+' → 值 '+fmt0(fv10)+'；后10年继续投入，总资产却翻了 '+(fv/fv10).toFixed(1)+'倍——<b>时间才是复利的朋友</b></div>'+
+    '<div class="line">若全存活期（0.15%），'+yrs+'年后仅 '+fmt0(invest+invest*0.0015*yrs)+'，差距 '+fmt0(fv-invest-invest*0.0015*yrs)+'</div>'+
+    '<div class="line" style="color:#b03a2e">风险提示：年化收益为预期值，指数基金有波动，下跌期请坚持定投纪律。</div>';
+  $('cRes').classList.add('show');
+}
+
+/* 3-4 攒钱法 */
+var plan52Key='syqj_52',plan365Key='syqj_365';
+function getDone(key){try{return JSON.parse(localStorage.getItem(key))||[]}catch(e){return[]}}
+function saveDone(key,arr){localStorage.setItem(key,JSON.stringify(arr))}
+function gen52(){
+  var done=getDone(plan52Key);
+  var h='',sum=0,cur=done.length,doneSum=0;
+  for(var i=1;i<=52;i++){
+    var amt=i*10;sum+=amt;
+    if(done.indexOf(i)>=0)doneSum+=amt;
+    var isDone=done.indexOf(i)>=0;
+    h+='<div class="lg-row click'+(isDone?' done':'')+'" onclick="togglePlan(52,'+i+')"><div class="d">第'+i+'周</div><div class="t">存 '+amt+' 元</div><div class="a">累计 '+sum+'</div><div class="s plan'+(isDone?' ok':'')+'">'+(isDone?'✓':'存')+'</div></div>';
+  }
+  $('plan52').innerHTML='<div class="plan-progress"><div class="pct">'+cur+' / 52</div><div class="txt">已完成 '+cur+'周 · 已存 <b>'+fmt0(doneSum)+'</b> / 13,780元</div></div>'+h;
+}
+function gen365(){
+  var done=getDone(plan365Key);
+  var months=[31,28,31,30,31,30,31,31,30,31,30,31];
+  var h='',day=1,sum=0,cur=done.length,doneSum=0;
+  for(var mi=0;mi<12;mi++){
+    var mSum=0;
+    for(var d=1;d<=months[mi];d++,day++){
+      mSum+=day;
+      if(done.indexOf(day)>=0)doneSum+=day;
+      var isDone=done.indexOf(day)>=0;
+      h+='<div class="lg-row click'+(isDone?' done':'')+'" onclick="togglePlan(365,'+day+')"><div class="d">'+(mi+1)+'月'+d+'日</div><div class="t">存 '+day+' 元</div><div class="a">累计 '+(sum+mSum)+'</div><div class="s plan'+(isDone?' ok':'')+'">'+(isDone?'✓':'存')+'</div></div>';
+    }
+    h+='<div class="lg-sum">'+(mi+1)+'月合计 <b>'+mSum+'元</b></div>';
+    sum+=mSum;
+  }
+  $('plan365').innerHTML='<div class="plan-progress"><div class="pct">'+cur+' / 365</div><div class="txt">已完成 '+cur+'天 · 已存 <b>'+fmt0(doneSum)+'</b> / 66,795元</div></div>'+h;
+}
+function togglePlan(type,day){
+  var key=type===52?plan52Key:plan365Key;
+  var arr=getDone(key);
+  var i=arr.indexOf(day);
+  if(i>=0)arr.splice(i,1);else arr.push(day);
+  saveDone(key,arr);
+  if(type===52)gen52();else gen365();
+}
+
+/* 3-5 利率对比：静态页，见HTML */
+
+/* 3-6 工资提醒 · 先存后花 */
+function saveSalary(){
+  var day=parseInt($('salDay').value),amt=+$('salAmt').value;
+  if(!(day>=1&&day<=31)){toast('工资日应为1~31号');return}
+  if(!(amt>0)){toast('请填写每月储蓄金额');return}
+  localStorage.setItem('syjq_salary',JSON.stringify({day:day,amt:amt}));
+  renderSalary();
+  toast('提醒设置已保存');
+}
+function renderSalary(){
+  var s=sjParse('syjq_salary');
+  var el=$('salRes');
+  if(!s){el.classList.remove('show');return}
+  var now=new Date(),today=now.getDate(),h='';
+  if(today>=s.day){
+    var daysPassed=today-s.day+1;
+    h='<div class="big red">本月储蓄金 '+fmt0(s.amt)+' 待执行</div>';
+    h+='<div class="line">工资日 '+s.day+'号已过 <b>'+daysPassed+'天</b></div>';
+    h+='<div class="line">请立即转存 <b class="r">'+fmt0(s.amt)+'</b> 到储蓄账户——每拖一天，这笔钱就多一分被花掉的风险。</div>';
+  }else{
+    var left=s.day-today;
+    h='<div class="big gold">距发薪日还有 '+left+'天</div>';
+    h+='<div class="line">发薪日 <b>'+s.day+'号</b> · 当天第一时间转存 <b>'+fmt0(s.amt)+'</b></div>';
+    h+='<div class="line">建议储蓄占收入10%~30%；转存后剩余部分才是本月可支配额度。</div>';
+  }
+  el.innerHTML=h;el.classList.add('show');
+}
+
+/* 3-7 智存规划 · 让闲钱不闲 */
+/* ★★★ 数据更新口子 ★★★
+   利率变化只需修改下方 SAVING_RATES 对象（单位：年化 %）；
+   后续如需自动获取最新利率，替换/扩展 refreshZ 中读取来源即可。 */
+var SAVING_RATES={
+  updated:'2026-08',     // 数据更新时间（改利率时同步改这里）
+  bank_live:0.15,        // 银行活期
+  bank_fix1:1.45,        // 银行定期 1 年
+  bank_fix3:1.90,        // 银行定期 3 年
+  yuebao:1.60,           // 余额宝（货币基金，随取随用 T+0）
+  lingqiantong:1.50,     // 微信零钱通（货币基金，随取随用 T+0）
+  guozhai3:2.40,         // 储蓄国债 3 年
+  guozhai5:2.60,         // 储蓄国债 5 年
+  licai:2.80             // 低风险理财（非保本）
+};
+var zUse=0; // 0 随时要用 1 半年内可能用 2 长期不用
+function zPickUse(i){
+  zUse=i;
+  var bs=document.querySelectorAll('#zUseCk button');
+  for(var b=0;b<bs.length;b++)bs[b].classList.toggle('on',b===i);
+}
+function zUseSaved(){
+  var g=sjGetGoal();
+  var saved=sumArr((g&&g.records)||[]);
+  $('zAmt').value=saved>0?saved:'';
+  toast(saved>0?'已带入当前已存 '+fmt0(saved):'暂无存入记录，可先到「目标反推」录入');
+}
+function refreshZ(){
+  var g=sjGetGoal();
+  var recs=(g&&g.records)||[];
+  var saved=sumArr(recs);
+  $('zSaved').textContent=fmt0(saved);
+  $('zCnt').textContent=''+recs.length;
+  $('zAmt').placeholder=saved>0?'默认为当前已存 '+fmt0(saved):'默认为当前已存总额';
+  var h='';
+  recs.slice().reverse().forEach(function(x){
+    h+='<div class="lg-row"><div class="d">'+x.date.slice(5)+'</div><div class="t">存入</div><div class="a" style="color:#4d6b4d">+'+fmt0(x.amt)+'</div><button class="del" onclick="delSaveRec('+x.ts+')">✕</button></div>';
+  });
+  $('zRecList').innerHTML=h||'<div class="lg-empty">暂无存入记录 · 可到「目标反推」设目标并存入</div>';
+  var r=SAVING_RATES;
+  $('zRates').innerHTML=
+    '<tr><th>去处</th><th>参考年化</th><th>特点</th></tr>'+
+    '<tr><td>银行活期</td><td class="num">'+r.bank_live+'%</td><td>随取随用</td></tr>'+
+    '<tr><td>余额宝（货币基金）</td><td class="num">'+r.yuebao+'%</td><td>随取随用 T+0</td></tr>'+
+    '<tr><td>微信零钱通</td><td class="num">'+r.lingqiantong+'%</td><td>随取随用 T+0</td></tr>'+
+    '<tr><td>银行定期 1 年</td><td class="num">'+r.bank_fix1+'%</td><td>锁定 1 年</td></tr>'+
+    '<tr><td>银行定期 3 年</td><td class="num">'+r.bank_fix3+'%</td><td>锁定 3 年</td></tr>'+
+    '<tr><td>储蓄国债 3 年</td><td class="num">'+r.guozhai3+'%</td><td>可提前支取（损息）</td></tr>'+
+    '<tr><td>储蓄国债 5 年</td><td class="num">'+r.guozhai5+'%</td><td>可提前支取（损息）</td></tr>'+
+    '<tr><td>低风险理财</td><td class="num">'+r.licai+'%</td><td>中低风险，非保本</td></tr>'+
+    '<tr><td colspan="3" style="font-size:11px;color:#8a7a55;text-align:left">数据参考截至 '+r.updated+' · 随市场波动，以银行/平台当期为准</td></tr>';
+}
+function zPlan(){
+  var amt=parseFloat($('zAmt').value);
+  if(!(amt>0)){toast('请填写金额');return}
+  var r=SAVING_RATES;
+  var h='';
+  if(amt<100){
+    h+='<div class="big">无需规划</div>';
+    h+='<div class="verdict ok">金额尚小（<100 元）· 放零钱 / 活期即可，重点是先把储蓄习惯养成。</div>';
+    h+='<div class="line">就近放入余额宝 / 零钱通，随用随取，一年收益约 <b class="g">'+fmt0(amt*r.yuebao/100)+'</b>。</div>';
+    h+='<div class="line">当攒到 1000 元以上，再来这里重新规划，收益才有意义。</div>';
+  }else if(amt<1000){
+    var yb=amt*r.yuebao/100,lqt=amt*r.lingqiantong/100,bl=amt*r.bank_live/100;
+    h+='<div class="big gold">推荐余额宝 / 零钱通</div>';
+    h+='<div class="verdict warn">中额闲钱（100~1000 元）· 灵活为王，三家对比：</div>';
+    h+='<table class="cmp"><tr><th>去处</th><th>年化</th><th>一年收益</th><th>点评</th></tr>';
+    h+='<tr class="hl"><td>余额宝</td><td class="num">'+r.yuebao+'%</td><td class="num">'+fmt0(yb)+'</td><td>随取随用，当前最优</td></tr>';
+    h+='<tr><td>微信零钱通</td><td class="num">'+r.lingqiantong+'%</td><td class="num">'+fmt0(lqt)+'</td><td>微信生态方便</td></tr>';
+    h+='<tr><td>银行活期</td><td class="num">'+r.bank_live+'%</td><td class="num">'+fmt0(bl)+'</td><td>收益极低</td></tr></table>';
+    h+='<div class="line">放余额宝一年比银行活期多 <b class="g">'+fmt0(yb-bl)+'</b>；若常用微信支付，零钱通也完全够用——<b>别让几百块躺在活期里</b>。</div>';
+  }else{
+    var useName=['随时要用','半年内可能用','长期不用(1年+)'][zUse];
+    var yb=amt*r.yuebao/100,f1=amt*r.bank_fix1/100,f3=amt*r.bank_fix3/100,gz=amt*r.guozhai3/100;
+    h+='<div class="big '+(zUse===2?'green':'gold')+'">用途已明：'+useName+'</div>';
+    h+='<div class="verdict '+(zUse===0?'warn':zUse===1?'ok':'ok')+'">大额闲钱（≥1000 元）· 用途决定去处，钱的第一使命是"该用时拿得出来"。</div>';
+    if(zUse===0){
+      h+='<div class="line">随时要用 → <b>别锁定期</b>，放活期类：</div>';
+      h+='<div class="line">推荐 <b>余额宝 / 零钱通</b>：年化约 '+r.yuebao+'%，一年收益 <b class="g">'+fmt0(yb)+'</b>，随取随用。</div>';
+      h+='<div class="line">银行活期仅 '+r.bank_live+'%（一年 '+fmt0(amt*r.bank_live/100)+'）；定期虽多 '+fmt0(f1-yb)+'/年，但<span class="r">锁死流动性</span>，急用只能损失利息取出。</div>';
+    }else if(zUse===1){
+      h+='<div class="line">半年内可能用 → <b>以灵活为主</b>，可小配短定期：</div>';
+      h+='<div class="line">主仓：余额宝 / 零钱通（'+r.yuebao+'%，年收益 '+fmt0(yb)+'）</div>';
+      h+='<div class="line">若确定 ≥3 个月不动：切 3~6 个月短定期（约 '+r.bank_fix1+'%，年收益 '+fmt0(f1)+'，多出 <b class="g">'+fmt0(f1-yb)+'</b>）</div>';
+      h+='<div class="line">建议比例：<b>7 成灵活 + 3 成短定期</b>，兼顾应急与收益。</div>';
+    }else{
+      h+='<div class="line">长期不用 → <b>锁定收益</b>，让时间复利：</div>';
+      h+='<table class="cmp"><tr><th>方案</th><th>年化</th><th>一年收益</th><th>3 年合计</th></tr>';
+      h+='<tr><td>余额宝</td><td class="num">'+r.yuebao+'%</td><td class="num">'+fmt0(yb)+'</td><td class="num">'+fmt0(yb*3)+'</td></tr>';
+      h+='<tr><td>定期 1 年</td><td class="num">'+r.bank_fix1+'%</td><td class="num">'+fmt0(f1)+'</td><td class="num">'+fmt0(f1*3)+'</td></tr>';
+      h+='<tr class="hl"><td>定期 3 年 / 国债 3 年</td><td class="num">'+r.bank_fix3+'~'+r.guozhai3+'%</td><td class="num">'+fmt0(f3)+'~'+fmt0(gz)+'</td><td class="num">'+fmt0(f3*3)+'~'+fmt0(gz*3)+'</td></tr></table>';
+      h+='<div class="line">3 年定期 / 国债比余额宝 3 年多 <b class="g">'+fmt0((f3-yb)*3)+'~'+fmt0((gz-yb)*3)+'</b>，且保本；金额 ≥5 万可关注大额存单 / 储蓄国债 5 年（'+r.guozhai5+'%）。</div>';
+    }
+    h+='<div class="line" style="color:#8a7a55">若用途判断有变，点上方用途按钮重新规划即可。</div>';
+  }
+  h+='<div class="line" style="font-size:11.5px;color:#a0926f">※ 利率为参考值（截至 '+r.updated+'），随市场波动；更新口子：SAVING_RATES 一处修改。</div>';
+  var el=$('zRes');el.innerHTML=h;el.classList.add('show');
+}
+
+/* ================ 初始化 ================ */
+(function init(){
+  var sel=$('rCity'),opt='';
+  var names=Object.keys(CITY);
+  for(var i=0;i<names.length;i++)opt+='<option value="'+names[i]+'">'+names[i]+'</option>';
+  sel.innerHTML=opt;
+  houseTab('rent');
+  var s=sjParse('syjq_salary');
+  if(s){$('salDay').value=s.day;$('salAmt').value=s.amt;renderSalary()}
+  refreshSnap();
+  go('home');
+})();
+</script>
+</body>
+</html>
+
+</html>
+
+</html>
+
+</html>
+
+</html>
+
+</html>
+
+</html>
