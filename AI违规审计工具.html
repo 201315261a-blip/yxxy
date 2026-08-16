@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>合规哨兵 · AI 自动化违规审计工具</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = { theme: { extend: { colors: {
+  bg: '#141416', panel: '#1c1c1f', panel2: '#222226', border: '#2e2e33',
+  accent: '#4f8cff', accent2: '#34d399'
+} } } };
+</script>
+<style>
+  * { -webkit-tap-highlight-color: transparent; }
+  html { scroll-behavior: smooth; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", "Segoe UI", Roboto, sans-serif; }
+
+  /* 滚动条 */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #3a3a40; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #4a4a52; }
+
+  /* 高亮标记 */
+  mark.hl { border-radius: 3px; padding: 0 2px; color: #fff; cursor: help; }
+  .hl-severe  { background: #dc2626; box-shadow: 0 0 0 1px #f87171 inset; }
+  .hl-medium  { background: #d97706; box-shadow: 0 0 0 1px #fbbf24 inset; }
+  .hl-mild    { background: #2563eb; box-shadow: 0 0 0 1px #60a5fa inset; }
+  .hl-unknown { background: #7c3aed; box-shadow: 0 0 0 1px #a78bfa inset; }
+
+  /* Loading 动画 */
+  @keyframes radar { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  @keyframes pulse-ring { 0% { transform: scale(.6); opacity: .9; } 100% { transform: scale(1.8); opacity: 0; } }
+  .radar-disc { animation: radar 2.2s linear infinite; }
+  .pulse-ring { animation: pulse-ring 1.6s ease-out infinite; }
+  @keyframes dots { 0%,20% { content: ''; } 40% { content: '.'; } 60% { content: '..'; } 80%,100% { content: '...'; } }
+  .loading-dots::after { content: ''; animation: dots 1.4s infinite; }
+
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-up { animation: fadeUp .35s ease both; }
+
+  /* 拖拽高亮 */
+  .drop-zone.dragover { border-color: #4f8cff !important; background: rgba(79,140,255,.08) !important; }
+
+  /* 打印样式：报告转浅色 */
+  @media print {
+    body { background: #fff !important; }
+    .no-print, #toastWrap { display: none !important; }
+    #printRoot { display: block !important; }
+    #appMain { display: none !important; }
+    #printRoot * { color: #111 !important; background: #fff !important; border-color: #ccc !important; box-shadow: none !important; }
+    #printRoot mark { background: #ffe08a !important; color: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .print-break { page-break-inside: avoid; }
+  }
+  #printRoot { display: none; }
+</style>
+</head>
+<body class="bg-bg text-gray-200 min-h-screen">
+
+<!-- ============ 顶部导航 ============ -->
+<header class="no-print sticky top-0 z-40 backdrop-blur-md bg-bg/80 border-b border-border">
+  <div class="max-w-[1600px] mx-auto px-4 h-14 flex items-center gap-3">
+    <div class="w-8 h-8 rounded-lg bg-accent/15 flex items-center justify-center">
+      <svg class="w-4.5 h-4.5 text-accent" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+    </div>
+    <div>
+      <h1 class="text-[15px] font-semibold leading-tight">合规哨兵</h1>
+      <p class="text-[11px] text-gray-500 leading-tight">AI 自动化违规审计工具</p>
+    </div>
+    <div class="ml-auto flex items-center gap-2">
+      <span id="apiStatus" class="hidden md:inline-flex items-center gap-1.5 text-[12px] px-2.5 py-1 rounded-full bg-panel2 border border-border text-gray-400">
+        <span id="apiDot" class="w-1.5 h-1.5 rounded-full bg-gray-500"></span>
+        <span id="apiStatusText">未配置 API</span>
+      </span>
+      <button onclick="openSettings()" class="text-[13px] px-3 py-1.5 rounded-lg bg-panel2 border border-border hover:border-accent/60 hover:text-accent transition-colors">⚙️ API 设置</button>
+    </div>
+  </div>
+</header>
+
+<!-- ============ 主区域 ============ -->
+<main id="appMain" class="max-w-[1600px] mx-auto px-4 py-4 grid grid-cols-1 xl:grid-cols-2 gap-4">
+
+  <!-- 左栏：输入 / 原文高亮 -->
+  <section class="flex flex-col min-h-[70vh]">
+    <!-- 输入模式 -->
+    <div id="inputMode" class="flex flex-col gap-3 flex-1">
+      <div id="dropZone" class="drop-zone flex-1 flex flex-col rounded-xl border border-border bg-panel overflow-hidden">
+        <div class="flex items-center justify-between px-4 py-2.5 border-b border-border bg-panel2/60">
+          <span class="text-[13px] font-medium text-gray-300">📄 待审文本</span>
+          <div class="flex items-center gap-2 text-[12px] text-gray-500">
+            <span id="charCount">0 字</span>
+            <button onclick="clearInput()" class="px-2 py-0.5 rounded hover:bg-white/5 hover:text-red-400 transition-colors">清空</button>
+          </div>
+        </div>
+        <textarea id="inputText" placeholder="在此粘贴待审计文本，或将 .txt / .md 文件拖入本区域&#10;&#10;支持政治敏感、暴力恐怖、色情低俗、商业违规等类别的自动检测…"
+          class="flex-1 w-full resize-none bg-transparent outline-none p-4 text-[14px] leading-relaxed placeholder:text-gray-600"></textarea>
+        <div class="px-4 py-2 border-t border-border bg-panel2/40 flex items-center justify-between text-[12px] text-gray-500">
+          <span>支持拖拽 <span class="text-gray-400">.txt</span> / <span class="text-gray-400">.md</span> 文件</span>
+          <span id="fileTag" class="hidden text-accent"></span>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="scanBtn" onclick="startScan()" class="flex-1 h-11 rounded-xl bg-accent hover:bg-accent/85 disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium text-[14px] transition-all active:scale-[.99] shadow-lg shadow-accent/20">
+          🔍 开始 AI 深度扫描
+        </button>
+        <button onclick="loadSample()" class="h-11 px-4 rounded-xl bg-panel2 border border-border hover:border-accent/50 text-[13px] text-gray-400 hover:text-gray-200 transition-colors" title="载入示例文本用于测试">示例</button>
+      </div>
+    </div>
+
+    <!-- 高亮模式 -->
+    <div id="highlightMode" class="hidden flex-col gap-3 flex-1">
+      <div class="flex items-center justify-between px-4 py-2.5 rounded-t-xl border border-b-0 border-border bg-panel2/60">
+        <span class="text-[13px] font-medium text-gray-300">🔦 原文扫描结果</span>
+        <button onclick="backToEdit()" class="text-[12px] px-2.5 py-1 rounded-lg bg-panel border border-border hover:border-accent/60 hover:text-accent transition-colors">← 返回编辑</button>
+      </div>
+      <div class="flex-1 overflow-y-auto rounded-b-xl border border-border bg-panel p-4 text-[14px] leading-[1.9] whitespace-pre-wrap break-words max-h-[62vh]">
+        <div id="highlightedText" class="text-gray-300"></div>
+      </div>
+      <div class="flex flex-wrap gap-3 px-1 text-[12px] text-gray-500">
+        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-red-600 inline-block"></span>严重</span>
+        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-amber-600 inline-block"></span>中等</span>
+        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-blue-600 inline-block"></span>轻微</span>
+        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-purple-600 inline-block"></span>未分级</span>
+        <span class="ml-auto text-gray-600">悬停高亮片段可查看违规理由</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 右栏：结果 -->
+  <section class="flex flex-col min-h-[70vh]">
+    <div id="emptyState" class="flex-1 rounded-xl border border-dashed border-border bg-panel/50 flex flex-col items-center justify-center gap-3 p-10 text-center">
+      <div class="w-16 h-16 rounded-2xl bg-panel2 flex items-center justify-center">
+        <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      </div>
+      <div>
+        <p class="text-[15px] font-medium text-gray-400">等待扫描任务</p>
+        <p class="text-[12px] text-gray-600 mt-1">在左侧输入文本，点击「开始 AI 深度扫描」<br>违规判定报告将在此处生成</p>
+      </div>
+    </div>
+
+    <div id="resultPanel" class="hidden flex-col gap-4 flex-1">
+      <!-- 分数条 -->
+      <div class="rounded-xl border border-border bg-panel p-4 flex items-center gap-4">
+        <div class="relative w-[88px] h-[88px] shrink-0">
+          <svg class="w-full h-full -rotate-90" viewBox="0 0 88 88">
+            <circle cx="44" cy="44" r="38" fill="none" stroke="#2e2e33" stroke-width="8"/>
+            <circle id="scoreRing" cx="44" cy="44" r="38" fill="none" stroke="#34d399" stroke-width="8" stroke-linecap="round"
+              stroke-dasharray="238.8" stroke-dashoffset="238.8" style="transition: stroke-dashoffset 1s ease, stroke .5s"/>
+          </svg>
+          <div class="absolute inset-0 flex flex-col items-center justify-center">
+            <span id="scoreNum" class="text-[24px] font-bold text-gray-100 leading-none">--</span>
+            <span class="text-[10px] text-gray-500 mt-0.5">合规分</span>
+          </div>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span id="verdictBadge" class="text-[12px] px-2.5 py-1 rounded-full font-medium">--</span>
+            <span id="violationCount" class="text-[12px] text-gray-500"></span>
+          </div>
+          <p id="verdictDesc" class="text-[12px] text-gray-500 mt-1.5 leading-relaxed"></p>
+        </div>
+        <div class="flex flex-col gap-2 shrink-0">
+          <button onclick="exportJSON()" class="text-[12px] px-3 py-1.5 rounded-lg bg-panel2 border border-border hover:border-accent/60 hover:text-accent transition-colors">⬇ 导出 JSON</button>
+          <button onclick="exportPDF()" class="text-[12px] px-3 py-1.5 rounded-lg bg-panel2 border border-border hover:border-accent/60 hover:text-accent transition-colors">🖨 导出 PDF</button>
+        </div>
+      </div>
+      <!-- 分类卡片 -->
+      <div id="cardList" class="flex flex-col gap-3 overflow-y-auto max-h-[calc(100vh-260px)] pr-1"></div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ 打印报告 ============ -->
+<div id="printRoot">
+  <div style="padding:32px 40px; font-family:'PingFang SC','Microsoft YaHei',sans-serif; color:#111; max-width:900px; margin:0 auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #333; padding-bottom:12px;">
+      <div>
+        <h1 style="font-size:22px; font-weight:700; margin:0;">违规判定报告</h1>
+        <p style="font-size:12px; color:#555; margin:4px 0 0;">合规哨兵 · AI 自动化违规审计工具</p>
+      </div>
+      <div style="text-align:right; font-size:12px; color:#555;">
+        <div id="printTime"></div>
+        <div id="printModel" style="margin-top:2px;"></div>
+      </div>
+    </div>
+    <div style="display:flex; gap:16px; margin:20px 0; flex-wrap:wrap;">
+      <div style="flex:1; min-width:140px; border:1px solid #ccc; border-radius:10px; padding:12px 16px; text-align:center;">
+        <div style="font-size:10px; color:#666;">合规分数</div>
+        <div id="printScore" style="font-size:30px; font-weight:800;"></div>
+      </div>
+      <div style="flex:1; min-width:140px; border:1px solid #ccc; border-radius:10px; padding:12px 16px; text-align:center;">
+        <div style="font-size:10px; color:#666;">判定结果</div>
+        <div id="printVerdict" style="font-size:16px; font-weight:700; margin-top:6px;"></div>
+      </div>
+      <div style="flex:1; min-width:140px; border:1px solid #ccc; border-radius:10px; padding:12px 16px; text-align:center;">
+        <div style="font-size:10px; color:#666;">违规条目</div>
+        <div id="printCount" style="font-size:30px; font-weight:800;"></div>
+      </div>
+    </div>
+    <div id="printCards"></div>
+    <div class="print-break" style="margin-top:24px; border:1px solid #ccc; border-radius:10px; padding:14px 16px;">
+      <h3 style="font-size:14px; margin:0 0 8px;">📄 原文（违规片段已标注）</h3>
+      <div id="printText" style="font-size:12px; line-height:1.8; white-space:pre-wrap; word-break:break-all;"></div>
+    </div>
+    <p style="font-size:10px; color:#999; margin-top:20px; text-align:center;">本报告由 AI 自动生成，仅供参考，最终判定请以人工复核为准。</p>
+  </div>
+</div>
+
+<!-- ============ API 设置弹窗 ============ -->
+<div id="settingsModal" class="no-print hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+  <div class="w-full max-w-md rounded-2xl border border-border bg-panel shadow-2xl fade-up">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-border">
+      <h2 class="text-[15px] font-semibold">⚙️ API 配置</h2>
+      <button onclick="closeSettings()" class="w-7 h-7 rounded-lg hover:bg-white/5 text-gray-400 hover:text-white transition-colors">✕</button>
+    </div>
+    <div class="p-5 flex flex-col gap-4">
+      <div>
+        <label class="text-[12px] text-gray-400 block mb-1.5">Base URL <span class="text-gray-600">(OpenAI 兼容格式)</span></label>
+        <input id="cfgBaseUrl" type="text" placeholder="https://api.openai.com/v1" class="w-full h-10 px-3 rounded-lg bg-panel2 border border-border outline-none focus:border-accent text-[13px]">
+        <p class="text-[11px] text-gray-600 mt-1">DeepSeek 示例：<code class="text-gray-500">https://api.deepseek.com/v1</code> · 结尾可带可不带 /v1</p>
+      </div>
+      <div>
+        <label class="text-[12px] text-gray-400 block mb-1.5">API Key</label>
+        <div class="relative">
+          <input id="cfgApiKey" type="password" placeholder="sk-..." class="w-full h-10 px-3 pr-10 rounded-lg bg-panel2 border border-border outline-none focus:border-accent text-[13px]">
+          <button onclick="toggleKey()" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 text-[12px] px-1" title="显示/隐藏">👁</button>
+        </div>
+        <p class="text-[11px] text-gray-600 mt-1">仅保存在本机浏览器 localStorage，不会上传到任何第三方</p>
+      </div>
+      <div>
+        <label class="text-[12px] text-gray-400 block mb-1.5">模型名称</label>
+        <input id="cfgModel" type="text" placeholder="gpt-4o-mini / deepseek-chat" class="w-full h-10 px-3 rounded-lg bg-panel2 border border-border outline-none focus:border-accent text-[13px]">
+      </div>
+      <div class="flex items-center gap-2 pt-1">
+        <button onclick="testConn()" class="h-9 px-3 rounded-lg bg-panel2 border border-border text-[12px] text-gray-300 hover:border-accent/60 transition-colors">🧪 测试连接</button>
+        <button onclick="saveConfig()" class="flex-1 h-10 rounded-lg bg-accent hover:bg-accent/85 text-white text-[13px] font-medium transition-colors">保存配置</button>
+      </div>
+      <p id="cfgMsg" class="text-[12px] min-h-[18px]"></p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ Loading 遮罩 ============ -->
+<div id="loadingMask" class="no-print hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center">
+  <div class="flex flex-col items-center gap-6">
+    <div class="relative w-24 h-24">
+      <div class="absolute inset-0 rounded-full border-2 border-accent/20"></div>
+      <div class="pulse-ring absolute inset-0 rounded-full border-2 border-accent/40"></div>
+      <div class="absolute inset-2 rounded-full border border-accent/60 overflow-hidden">
+        <div class="radar-disc w-full h-full" style="background: conic-gradient(from 0deg, transparent 0deg, rgba(79,140,255,.5) 60deg, transparent 90deg);"></div>
+      </div>
+      <div class="absolute inset-0 flex items-center justify-center text-[11px] text-accent font-medium">扫描中</div>
+    </div>
+    <div class="text-center">
+      <p class="text-[15px] font-medium text-gray-200">AI 正在深度扫描<span class="loading-dots"></span></p>
+      <p class="text-[12px] text-gray-500 mt-1.5">正在逐段分析政治敏感 / 暴力恐怖 / 色情低俗 / 商业违规内容…</p>
+    </div>
+    <button onclick="abortScan()" class="text-[12px] px-4 py-1.5 rounded-lg bg-panel2 border border-border text-gray-400 hover:text-red-400 transition-colors">取消扫描</button>
+  </div>
+</div>
+
+<!-- ============ Toast ============ -->
+<div id="toastWrap" class="no-print fixed top-16 left-1/2 -translate-x-1/2 z-[60] flex flex-col items-center gap-2 w-full max-w-sm px-4 pointer-events-none"></div>
+
+<script>
+/* ================= 状态 ================= */
+const $ = id => document.getElementById(id);
+let config = { baseUrl: '', apiKey: '', model: '' };
+let lastResult = null;   // { raw, score, verdict, violations, is_violation }
+let scanAbort = null;
+
+/* ================= 配置持久化 ================= */
+function loadConfig(){
+  try {
+    config = JSON.parse(localStorage.getItem('audit_cfg') || '{}') || {};
+  } catch(e){ config = {}; }
+  $('cfgBaseUrl').value = config.baseUrl || '';
+  $('cfgApiKey').value = config.apiKey || '';
+  $('cfgModel').value = config.model || '';
+  refreshApiBadge();
+}
+function saveConfig(){
+  config.baseUrl = $('cfgBaseUrl').value.trim().replace(/\/+$/,'');
+  config.apiKey = $('cfgApiKey').value.trim();
+  config.model = $('cfgModel').value.trim() || 'gpt-4o-mini';
+  localStorage.setItem('audit_cfg', JSON.stringify(config));
+  refreshApiBadge();
+  toast('✅ 配置已保存到本地浏览器', '#34d399');
+  setTimeout(closeSettings, 700);
+}
+function refreshApiBadge(){
+  const ok = config.apiKey && config.baseUrl;
+  $('apiDot').className = 'w-1.5 h-1.5 rounded-full ' + (ok ? 'bg-emerald-400' : 'bg-gray-500');
+  $('apiStatusText').textContent = ok
+    ? (config.model || '已配置') + ' · 已就绪'
+    : '未配置 API';
+}
+function toggleKey(){ const i = $('cfgApiKey'); i.type = i.type === 'password' ? 'text' : 'password'; }
+function openSettings(){ $('settingsModal').classList.remove('hidden'); }
+function closeSettings(){ $('settingsModal').classList.add('hidden'); }
+
+/* ================= Toast ================= */
+function toast(text, color = '#f87171'){
+  const el = document.createElement('div');
+  el.className = 'fade-up text-[13px] px-4 py-2.5 rounded-xl border border-border bg-panel shadow-xl';
+  el.innerHTML = `<span style="color:${color}">${text}</span>`;
+  $('toastWrap').appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity .4s'; setTimeout(() => el.remove(), 400); }, 4200);
+}
+
+/* ================= 输入区 ================= */
+const ta = $('inputText');
+ta.addEventListener('input', () => $('charCount').textContent = ta.value.length + ' 字');
+
+const dz = $('dropZone');
+['dragenter','dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('dragover'); }));
+['dragleave','drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('dragover'); }));
+dz.addEventListener('drop', e => {
+  const f = e.dataTransfer.files && e.dataTransfer.files[0];
+  if(!f) return;
+  const okExt = /\.(txt|md)$/i.test(f.name);
+  if(!okExt){ toast('⚠️ 仅支持 .txt / .md 文件'); return; }
+  const rd = new FileReader();
+  rd.onload = () => { ta.value = String(rd.result || ''); $('charCount').textContent = ta.value.length + ' 字'; $('fileTag').textContent = '📎 ' + f.name; $('fileTag').classList.remove('hidden'); };
+  rd.readAsText(f, 'utf-8');
+});
+function clearInput(){ ta.value = ''; $('charCount').textContent = '0 字'; $('fileTag').classList.add('hidden'); }
+function loadSample(){
+  ta.value = `【新闻快讯】某电商直播间宣称其"量子能量手环"能治愈高血压、糖尿病，原价9999元现价仅999元，限量抢购！专家表示该产品无任何医疗资质，涉嫌虚假宣传。
+
+【社会事件】昨日凌晨，一伙人闯入小区，持棍棒打砸车辆，并扬言"不交保护费就放火烧店"，多名商户表示十分恐慌。
+
+【网文片段】他盯着屏幕里的画面，呼吸急促，指尖无意识地划过那些暧昧的字眼，心跳仿佛要冲破胸膛。
+
+【论坛帖】有网友发帖讨论某地近年来的变化，称"当地发展速度远超预期，基础设施建设不断完善"，评论区有人跟帖表示赞同。`;
+  $('charCount').textContent = ta.value.length + ' 字';
+  toast('已载入示例文本，可直接扫描', '#60a5fa');
+}
+
+/* ================= 检测主流程 ================= */
+async function startScan(){
+  const text = ta.value.trim();
+  if(!text){ toast('⚠️ 请先输入或拖入待审计文本'); return; }
+  if(!config.apiKey || !config.baseUrl){ toast('⚠️ 请先完成 API 配置'); openSettings(); return; }
+
+  $('loadingMask').classList.remove('hidden');
+  $('scanBtn').disabled = true;
+  const ctrl = new AbortController();
+  scanAbort = ctrl;
+  const timeout = setTimeout(() => ctrl.abort('timeout'), 60000);
+
+  try {
+    const url = config.baseUrl.replace(/\/+$/,'') + '/chat/completions';
+    const resp = await fetch(url, {
+      method: 'POST',
+      signal: ctrl.signal,
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + config.apiKey },
+      body: JSON.stringify({
+        model: config.model || 'gpt-4o-mini',
+        temperature: 0.1,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: text }
+        ]
+      })
+    });
+
+    if(!resp.ok){
+      const errBody = await resp.text().catch(() => '');
+      handleApiError(resp.status, errBody);
+      return;
+    }
+    const data = await resp.json();
+    const content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    if(!content){ toast('❌ API 返回内容为空'); return; }
+
+    const result = parseResult(content);
+    renderResult(result, text);
+  } catch(err){
+    if(err && err.name === 'AbortError'){
+      toast('⏱ 请求超时（60 秒），请检查网络或换用更快的模型');
+    } else {
+      console.error(err);
+      toast('❌ 网络请求失败：' + (err.message || '未知错误'));
+    }
+  } finally {
+    clearTimeout(timeout);
+    $('loadingMask').classList.add('hidden');
+    $('scanBtn').disabled = false;
+  }
+}
+
+function handleApiError(status, body){
+  let hint = '';
+  let msg = 'HTTP ' + status;
+  try { const j = JSON.parse(body); msg = j.error && (j.error.message || j.error.code) || msg; } catch(e){}
+  if(status === 401)      hint = '（API Key 无效或未授权，请检查配置）';
+  else if(status === 402) hint = '（账户余额不足，请充值后重试）';
+  else if(status === 403) hint = '（无权限访问，请检查 Key 权限）';
+  else if(status === 404) hint = '（接口地址或模型不存在，请检查 Base URL / 模型名）';
+  else if(status === 429) hint = '（请求过于频繁或额度已用尽）';
+  else if(status === 500 || status === 502 || status === 503) hint = '（服务端异常，请稍后重试）';
+  toast('❌ API 报错：' + msg + hint);
+}
+
+function abortScan(){
+  if(scanAbort) scanAbort.abort('user');
+}
+
+/* ================= Prompt 策略 ================= */
+const SYSTEM_PROMPT = `你是专业的互联网内容安全审计专家，负责对用户提供的文本进行严格合规性审查。请逐段、逐句仔细检查，不得遗漏，也不得误报。
+
+检测以下四大违规类别：
+1. 政治敏感：危害国家安全、破坏国家统一、攻击党和国家领导人、篡改历史、煽动对立等；
+2. 暴力恐怖：宣扬暴力、恐怖主义、血腥残忍、教唆伤害他人或犯罪行为等；
+3. 色情低俗：淫秽色情描写、露骨低俗内容、性暗示或涉黄交易等；
+4. 商业违规：虚假宣传、夸大功效、传销欺诈、无资质销售、侵犯权益等。
+
+输出要求：
+- 若发现违规，violations 中列出全部违规项；content 字段必须尽量完整引用原文中的违规片段（便于在原文中定位高亮）；
+- severity 只能取 "严重" / "中等" / "轻微"；
+- 若完全合规，is_violation 为 false，violations 为空数组；
+- 只输出一个合法的 JSON 对象，不要输出任何解释文字、不要使用 Markdown 代码块，格式严格如下：
+{"is_violation": true, "violations": [{"category": "政治敏感", "content": "违规原文片段", "reason": "简短专业的违规理由", "severity": "严重"}]}`;
+
+/* ================= 结果解析 ================= */
+function parseResult(raw){
+  let t = String(raw).trim();
+  t = t.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
+  const s = t.indexOf('{'), e = t.lastIndexOf('}');
+  if(s >= 0 && e > s) t = t.slice(s, e + 1);
+  let obj;
+  try { obj = JSON.parse(t); }
+  catch(err){
+    // 兜底：尝试把散落的 JSON 块拼起来
+    const blocks = t.match(/\{[^{}]*\}/g) || [];
+    const merged = blocks.map(b => { try { return JSON.parse(b); } catch(e){ return null; } }).filter(Boolean);
+    if(merged.length){
+      obj = { is_violation: true, violations: merged };
+    } else {
+      throw new Error('模型返回内容无法解析为 JSON');
+    }
+  }
+  const violations = Array.isArray(obj.violations) ? obj.violations : [];
+  const cleaned = violations
+    .filter(v => v && v.content && String(v.content).trim())
+    .map(v => ({
+      category: String(v.category || '其他').trim(),
+      content: String(v.content).trim(),
+      reason: String(v.reason || '未提供理由').trim(),
+      severity: normalizeSeverity(v.severity)
+    }));
+  return {
+    raw,
+    is_violation: obj.is_violation === true || cleaned.length > 0,
+    violations: cleaned
+  };
+}
+function normalizeSeverity(s){
+  const str = String(s || '').trim();
+  if(str.includes('严重')) return '严重';
+  if(str.includes('中等') || str.includes('中度')) return '中等';
+  if(str.includes('轻微') || str.includes('轻度')) return '轻微';
+  return '未分级';
+}
+
+/* ================= 渲染 ================= */
+const CATEGORY_META = {
+  '政治敏感': { icon: '🏛', color: '#ef4444', bg: 'rgba(239,68,68,.1)', border: 'rgba(239,68,68,.35)' },
+  '暴力恐怖': { icon: '💥', color: '#f97316', bg: 'rgba(249,115,22,.1)', border: 'rgba(249,115,22,.35)' },
+  '色情低俗': { icon: '🔞', color: '#ec4899', bg: 'rgba(236,72,153,.1)', border: 'rgba(236,72,153,.35)' },
+  '商业违规': { icon: '🏷', color: '#8b5cf6', bg: 'rgba(139,92,246,.1)', border: 'rgba(139,92,246,.35)' }
+};
+const SEV_WEIGHT = { '严重': 40, '中等': 20, '轻微': 10, '未分级': 15 };
+const SEV_COLOR = { '严重': '#ef4444', '中等': '#f59e0b', '轻微': '#3b82f6', '未分级': '#8b5cf6' };
+const SEV_HL = { '严重': 'hl-severe', '中等': 'hl-medium', '轻微': 'hl-mild', '未分级': 'hl-unknown' };
+
+function renderResult(result, text){
+  lastResult = result;
+  const score = Math.max(0, 100 - result.violations.reduce((s, v) => s + (SEV_WEIGHT[v.severity] || 15), 0));
+  result.score = score;
+
+  // —— 分数仪表 ——
+  const ring = $('scoreRing');
+  const frac = score / 100;
+  const color = score >= 80 ? '#34d399' : score >= 60 ? '#f59e0b' : '#ef4444';
+  ring.style.stroke = color;
+  $('scoreNum').textContent = score;
+  requestAnimationFrame(() => requestAnimationFrame(() => { ring.style.strokeDashoffset = String(238.8 * (1 - frac)); }));
+
+  // —— 判定 ——
+  const badge = $('verdictBadge');
+  if(!result.is_violation){
+    badge.textContent = '✅ 完全合规';
+    badge.className = 'text-[12px] px-2.5 py-1 rounded-full font-medium bg-emerald-500/15 text-emerald-400';
+    $('violationCount').textContent = '未检测到违规内容';
+    $('verdictDesc').textContent = 'AI 未发现政治敏感、暴力恐怖、色情低俗或商业违规内容，可放心使用。';
+  } else {
+    const sevCount = { '严重': 0, '中等': 0, '轻微': 0, '未分级': 0 };
+    result.violations.forEach(v => sevCount[v.severity] = (sevCount[v.severity] || 0) + 1);
+    badge.textContent = '⚠️ 检测到违规';
+    badge.className = 'text-[12px] px-2.5 py-1 rounded-full font-medium bg-red-500/15 text-red-400';
+    $('violationCount').textContent = `共 ${result.violations.length} 处违规 · 严重 ${sevCount['严重']} · 中等 ${sevCount['中等']} · 轻微 ${sevCount['轻微']}`;
+    $('verdictDesc').textContent = score >= 60
+      ? '整体风险可控，但存在需修改的违规内容，建议整改后重新审核。'
+      : '合规风险较高，请立即整改违规内容，避免产生法律与平台处罚风险。';
+  }
+
+  // —— 原文高亮 ——
+  $('highlightedText').innerHTML = buildHighlight(text, result.violations);
+
+  // —— 分类卡片 ——
+  const groups = {};
+  result.violations.forEach(v => { (groups[v.category] = groups[v.category] || []).push(v); });
+  const list = $('cardList');
+  list.innerHTML = '';
+  Object.entries(groups).forEach(([cat, items], idx) => {
+    const meta = CATEGORY_META[cat] || { icon: '📌', color: '#3b82f6', bg: 'rgba(59,130,246,.1)', border: 'rgba(59,130,246,.35)' };
+    const card = document.createElement('div');
+    card.className = 'fade-up rounded-xl border bg-panel overflow-hidden';
+    card.style.borderColor = meta.border;
+    card.style.animationDelay = (idx * 0.06) + 's';
+    card.innerHTML = `
+      <div class="px-4 py-3 flex items-center gap-2.5" style="background:${meta.bg}">
+        <span class="text-[16px]">${meta.icon}</span>
+        <span class="text-[14px] font-semibold" style="color:${meta.color}">${escapeHtml(cat)}</span>
+        <span class="ml-auto text-[12px] px-2 py-0.5 rounded-full font-medium" style="background:${meta.border}; color:#fff">${items.length} 处</span>
+      </div>
+      <div class="p-3 flex flex-col gap-2.5">
+        ${items.map((v, i) => `
+          <div class="rounded-lg border border-border bg-panel2/50 p-3">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="text-[11px] px-2 py-0.5 rounded-full font-medium" style="background:${SEV_COLOR[v.severity]}22; color:${SEV_COLOR[v.severity]}; border:1px solid ${SEV_COLOR[v.severity]}55">${v.severity}</span>
+              <span class="text-[11px] text-gray-500">#${i + 1}</span>
+            </div>
+            <p class="text-[12.5px] text-gray-400 leading-relaxed"><span class="text-gray-600">违规片段：</span><span class="text-gray-300">“${escapeHtml(truncate(v.content, 120))}”</span></p>
+            <p class="text-[12.5px] text-gray-400 leading-relaxed mt-1.5"><span class="text-gray-600">违规理由：</span><span class="text-gray-300">${escapeHtml(v.reason)}</span></p>
+          </div>`).join('')}
+      </div>`;
+    list.appendChild(card);
+  });
+
+  // —— 视图切换 ——
+  $('emptyState').classList.add('hidden');
+  $('resultPanel').classList.remove('hidden');
+  $('inputMode').classList.add('hidden');
+  $('highlightMode').classList.remove('hidden');
+  $('highlightMode').classList.add('flex');
+}
+
+/* —— 原文高亮构建（含容错匹配与重叠合并）—— */
+function buildHighlight(text, violations){
+  const ranges = [];
+  for(const v of violations){
+    const c = v.content;
+    let idx = text.indexOf(c);
+    let len = c.length;
+    if(idx === -1){
+      // 容错：模型可能改写了片段，取前 24 个字符模糊定位
+      const probe = c.slice(0, 24);
+      idx = text.indexOf(probe);
+      len = probe.length;
+      if(idx === -1) continue;
+    }
+    ranges.push({ start: idx, end: idx + len, v });
+  }
+  ranges.sort((a, b) => a.start - b.start || b.end - a.end);
+  const merged = [];
+  for(const r of ranges){
+    if(merged.length && r.start < merged[merged.length - 1].end){
+      const last = merged[merged.length - 1];
+      if(r.end > last.end) last.end = r.end;
+      continue;
+    }
+    merged.push({ ...r });
+  }
+  let html = '';
+  let pos = 0;
+  merged.forEach(r => {
+    html += escapeHtml(text.slice(pos, r.start));
+    const sevClass = SEV_HL[r.v.severity] || 'hl-unknown';
+    const title = escapeHtml(`${r.v.category} · ${r.v.severity}\n${r.v.reason}`);
+    html += `<mark class="hl ${sevClass}" title="${title}">${escapeHtml(text.slice(r.start, r.end))}</mark>`;
+    pos = r.end;
+  });
+  html += escapeHtml(text.slice(pos));
+  return html || escapeHtml(text);
+}
+
+function backToEdit(){
+  $('highlightMode').classList.add('hidden');
+  $('highlightMode').classList.remove('flex');
+  $('inputMode').classList.remove('hidden');
+}
+
+/* ================= 导出 ================= */
+function exportJSON(){
+  if(!lastResult){ toast('⚠️ 暂无扫描结果'); return; }
+  const payload = {
+    tool: '合规哨兵 · AI 违规审计报告',
+    exported_at: new Date().toLocaleString('zh-CN'),
+    model: config.model || '',
+    score: lastResult.score,
+    is_violation: lastResult.is_violation,
+    violations: lastResult.violations
+  };
+  downloadBlob('违规判定报告-' + dateStamp() + '.json', JSON.stringify(payload, null, 2), 'application/json');
+  toast('✅ JSON 报告已导出', '#34d399');
+}
+
+function exportPDF(){
+  if(!lastResult){ toast('⚠️ 暂无扫描结果'); return; }
+  const r = lastResult;
+  $('printTime').textContent = '生成时间：' + new Date().toLocaleString('zh-CN');
+  $('printModel').textContent = '模型：' + (config.model || '未记录');
+  $('printScore').textContent = r.score;
+  $('printScore').style.color = r.score >= 80 ? '#059669' : r.score >= 60 ? '#d97706' : '#dc2626';
+  $('printVerdict').textContent = r.is_violation ? '⚠️ 检测到违规' : '✅ 完全合规';
+  $('printVerdict').style.color = r.is_violation ? '#dc2626' : '#059669';
+  $('printCount').textContent = r.violations.length;
+
+  const groups = {};
+  r.violations.forEach(v => { (groups[v.category] = groups[v.category] || []).push(v); });
+  $('printCards').innerHTML = Object.entries(groups).map(([cat, items]) => `
+    <div class="print-break" style="border:1px solid #ccc; border-radius:10px; padding:14px 16px; margin-bottom:14px;">
+      <h3 style="font-size:14px; margin:0 0 10px;">${escapeHtml(cat)} <span style="color:#666; font-size:12px;">（${items.length} 处）</span></h3>
+      ${items.map(v => `
+        <div style="border:1px solid #eee; border-radius:8px; padding:10px 12px; margin-bottom:8px; font-size:12px;">
+          <div style="font-weight:700; margin-bottom:4px;"><span style="color:${SEV_COLOR[v.severity]}">${v.severity}</span></div>
+          <div style="margin-bottom:4px;"><span style="color:#666;">违规片段：</span>“${escapeHtml(truncate(v.content, 200))}”</div>
+          <div><span style="color:#666;">违规理由：</span>${escapeHtml(v.reason)}</div>
+        </div>`).join('')}
+    </div>`).join('') || '<p style="font-size:12px; color:#666;">未检测到违规内容。</p>';
+
+  $('printText').innerHTML = buildHighlight($('inputText').value, r.violations);
+  toast('🖨 请在打印对话框中选择「另存为 PDF」', '#60a5fa');
+  setTimeout(() => window.print(), 350);
+}
+
+function downloadBlob(name, content, type){
+  const blob = new Blob([content], { type: type + ';charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function dateStamp(){
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes());
+}
+
+/* ================= 工具函数 ================= */
+function escapeHtml(s){
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '"');
+}
+function truncate(s, n){ return s.length > n ? s.slice(0, n) + '…' : s; }
+
+/* ================= 测试连接 ================= */
+async function testConn(){
+  const url = $('cfgBaseUrl').value.trim().replace(/\/+$/,'');
+  const key = $('cfgApiKey').value.trim();
+  const model = $('cfgModel').value.trim() || 'gpt-4o-mini';
+  const msgEl = $('cfgMsg');
+  if(!url || !key){ msgEl.innerHTML = '<span style="color:#f87171">⚠️ 请先填写 Base URL 和 API Key</span>'; return; }
+  msgEl.innerHTML = '<span style="color:#60a5fa">⏳ 正在测试连接…</span>';
+  try {
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), 15000);
+    const resp = await fetch(url + '/chat/completions', {
+      method: 'POST', signal: ctrl.signal,
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+      body: JSON.stringify({ model, max_tokens: 4, messages: [{ role: 'user', content: 'ping' }] })
+    });
+    if(resp.ok){
+      msgEl.innerHTML = '<span style="color:#34d399">✅ 连接成功！模型 ' + model + ' 可用</span>';
+    } else {
+      let m = 'HTTP ' + resp.status;
+      try { const j = await resp.json(); m = j.error && (j.error.message || j.error.code) || m; } catch(e){}
+      msgEl.innerHTML = '<span style="color:#f87171">❌ ' + m + '</span>';
+    }
+  } catch(err){
+    msgEl.innerHTML = '<span style="color:#f87171">❌ 连接失败：' + (err.name === 'AbortError' ? '超时' : err.message) + '</span>';
+  }
+}
+
+/* ================= 初始化 ================= */
+loadConfig();
+</script>
+</body>
+</html>
