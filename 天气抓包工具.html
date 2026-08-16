@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>天气抓包 · 数据对比</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none}
+body{background:#0d1117;color:#c9d1d9;font-family:'Consolas','Menlo',monospace;min-height:100vh;padding:14px;touch-action:manipulation}
+h1{color:#58a6ff;font-size:19px;margin-bottom:2px}
+.sub{color:#8b949e;font-size:12px;margin-bottom:12px}
+.row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+input{flex:1;min-width:140px;background:#161b22;border:1px solid #30363d;color:#c9d1d9;border-radius:6px;padding:9px 12px;font-size:14px}
+.btn{background:#21262d;border:1px solid #30363d;color:#c9d1d9;border-radius:6px;padding:9px 14px;font-size:13px;cursor:pointer;white-space:nowrap}
+.btn:active{transform:scale(.95)}
+.btn.pri{background:#238636;border-color:#238636;color:#fff}
+.btn.warn{background:#d29922;border-color:#d29922;color:#fff}
+.btn.dan{background:#da3633;border-color:#da3633;color:#fff}
+.btn.pur{background:#8250df;border-color:#8250df;color:#fff}
+.btn.cyan{background:#1f6feb;border-color:#1f6feb;color:#fff}
+.btns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+#loading{display:none;color:#58a6ff;font-size:13px;margin:8px 0}
+.pkt{background:#161b22;border:1px solid #30363d;border-radius:8px;margin-bottom:10px;overflow:hidden}
+.pkt .hd{display:flex;justify-content:space-between;align-items:center;background:#1c2333;padding:7px 12px;font-size:12px;color:#8b949e;border-bottom:1px solid #30363d;flex-wrap:wrap;gap:4px}
+.pkt .hd b{color:#58a6ff}
+.pkt .hd .status{color:#3fb950;font-weight:bold}
+.pkt .hd .status.err{color:#f85149}
+.pkt .sec{padding:7px 12px;border-bottom:1px solid #21262d}
+.pkt .secT{font-size:11px;color:#8b949e;margin-bottom:4px}
+.line{font-size:12px;line-height:1.7;word-break:break-all}
+.req{color:#79c0ff}
+.hdr{color:#d2a8ff}
+.val{color:#ffa657}
+.body{color:#7ee787;white-space:pre-wrap;max-height:160px;overflow:auto;font-size:11px}
+.gray{color:#8b949e}
+.timeline{font-size:11px;color:#58a6ff;margin:2px 12px 6px}
+
+/* 统计卡片 */
+.stats{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 10px}
+.stat{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 14px;flex:1;min-width:100px;text-align:center}
+.stat .num{font-size:28px;font-weight:bold;color:#e6edf3}
+.stat .lbl{font-size:11px;color:#8b949e;margin-top:2px}
+.stat.high .num{color:#f85149}
+.stat.low .num{color:#58a6ff}
+.stat.avg .num{color:#d2a8ff}
+.stat.wind .num{color:#7ee787}
+
+/* 表格 */
+.tbl{width:100%;border-collapse:collapse;font-size:11px;margin:6px 0}
+.tbl th{background:#1c2333;color:#8b949e;padding:5px 6px;text-align:left;border-bottom:1px solid #30363d;font-weight:normal}
+.tbl td{padding:4px 6px;border-bottom:1px solid #21262d}
+.tbl tr:hover td{background:#1c2333}
+.hot{color:#f85149}
+.cold{color:#58a6ff}
+
+/* 折线图容器 */
+.chart-wrap{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px;margin:8px 0 12px;overflow-x:auto}
+.chart-wrap svg{display:block;width:100%;min-width:300px;height:140px}
+
+.note{background:#1f1a24;border:1px solid #4d2f4d;border-radius:8px;padding:10px;font-size:11px;color:#d2a8ff;line-height:1.8;margin-bottom:10px}
+.tag{display:inline-block;background:#21262d;border-radius:4px;padding:1px 6px;font-size:10px;color:#8b949e;margin-right:4px}
+</style>
+</head>
+<body>
+<h1>🔍 天气抓包 · 数据对比</h1>
+<div class="sub">输入城市，查看实时/周/月级数据包与统计对比</div>
+
+<div class="row">
+  <input id="city" type="text" value="北京" placeholder="输入城市名">
+  <button class="btn pri" onclick="startReal()">🌤 实时</button>
+</div>
+
+<div class="btns">
+  <button class="btn cyan" onclick="startWeek()">📅 周数据</button>
+  <button class="btn warn" onclick="startWeekCmp()">📊 周对比</button>
+  <button class="btn pur" onclick="startMonth()">📆 月数据</button>
+  <button class="btn dan" onclick="startMonthCmp()">📈 月对比</button>
+</div>
+<div id="loading">⏳ 正在抓包...</div>
+<div id="log"></div>
+<div id="chart"></div>
+<div id="result"></div>
+
+<div class="note">
+💡 <b>抓包原理</b>：每次点击按钮 = 发送 HTTP 请求到 Open-Meteo 公开 API → 服务器返回 JSON 响应体 → 解析后绘制表格/图表/统计<br>
+🔍 每个请求下方都会显示 <b>完整请求头 + 响应头 + 原始 JSON</b>，让你看到数据包的真实面貌
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const log=$('log'), chart=$('chart'), result=$('result');
+const WMO={
+  0:'☀️晴',1:'🌤晴',2:'⛅多云',3:'☁️阴',
+  45:'🌫雾',48:'🌫雾凇',
+  51:'🌦毛毛雨',53:'🌦毛毛雨',55:'🌦毛毛雨',
+  56:'🌧冻毛毛雨',57:'🌧冻毛毛雨',
+  61:'🌧小雨',63:'🌧中雨',65:'🌧大雨',
+  66:'🌧冻雨',67:'🌧冻雨',
+  71:'🌨小雪',73:'🌨中雪',75:'🌨大雪',77:'🌨雪粒',
+  80:'🌧阵雨',81:'🌧强阵雨',82:'🌧暴雨',
+  85:'🌨阵雪',86:'🌨强阵雪',
+  95:'⛈雷暴',96:'⛈雷暴+冰雹',99:'⛈强雷暴+冰雹'
+};
+function wmoEmoji(c){return WMO[c]||('?'+c);}
+
+function ts(){return new Date().toLocaleTimeString();}
+
+function addPkt(title,method,url,reqHdrs,status,statusText,resHdrs,body,elapsed){
+  const div=document.createElement('div'); div.className='pkt';
+  const ok=status>=200&&status<300;
+  let h='', rh='';
+  for(const [k,v] of Object.entries(reqHdrs))h+=`<div class="line"><span class="hdr">${k}</span>: <span class="val">${v}</span></div>`;
+  for(const [k,v] of resHdrs.entries())rh+=`<div class="line"><span class="hdr">${k}</span>: <span class="val">${v}</span></div>`;
+  div.innerHTML=`
+    <div class="hd"><span><b>${title}</b> · ${ts()}</span><span class="status ${ok?'':'err'}">${status} ${statusText||''}</span></div>
+    <div class="timeline">⏱ ${elapsed}ms</div>
+    <div class="sec"><div class="secT">— REQUEST —</div><div class="line req"><b>${method}</b> ${url}</div><div style="height:3px"></div>${h}</div>
+    <div class="sec"><div class="secT">— RESPONSE HEADERS —</div>${rh||'<div class="line gray">（浏览器限制）</div>'}</div>
+    <div class="sec"><div class="secT">— RESPONSE BODY（原始JSON）—</div><div class="body">${body}</div></div>`;
+  log.appendChild(div);
+}
+
+async function getCity(){
+  const city=$('city').value.trim()||'北京';
+  const geoUrl=`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=zh&format=json`;
+  const t0=performance.now();
+  const resp=await fetch(geoUrl,{headers:{'Accept':'application/json','Accept-Language':'zh-CN,zh;q=0.9'}});
+  const data=await resp.json();
+  const elapsed=Math.round(performance.now()-t0);
+  addPkt('📍 地理编码（城市→经纬度）','GET',geoUrl,
+    {'Accept':'application/json','Accept-Language':'zh-CN,zh;q=0.9'},
+    resp.status,resp.statusText,resp.headers,JSON.stringify(data,null,2),elapsed);
+  if(!data.results||!data.results.length) throw new Error('未找到城市');
+  const loc=data.results[0];
+  return {lat:loc.latitude.toFixed(4),lon:loc.longitude.toFixed(4),name:loc.name,admin:loc.admin1||''};
+}
+
+// ----- 绘制折线图 -----
+function drawChart(rows,label){
+  if(!rows||rows.length<2){chart.innerHTML='<div class="gray" style="padding:8px">数据不足，无法绘图</div>';return;}
+  const n=rows.length, w=Math.max(300,n*28);
+  const temps=rows.map(r=>r.t), wind=rows.map(r=>r.w);
+  const tMin=Math.min(...temps), tMax=Math.max(...temps);
+  const range=tMax-tMin||1;
+  const pad=20, H=120, W=w-40;
+  let pts='', pts2='';
+  temps.forEach((t,i)=>{
+    const x=pad+i*(W/(n-1||1)), y=H-pad-((t-tMin)/range)*(H-2*pad);
+    pts+=`${i>0?' ':'M'}${x},${y}`;
+  });
+  // 风速虚线
+  const wMin=Math.min(...wind), wMax=Math.max(...wind), wR=wMax-wMin||1;
+  wind.forEach((v,i)=>{
+    const x=pad+i*(W/(n-1||1)), y=H-pad-((v-wMin)/wR)*(H-2*pad);
+    pts2+=`${i>0?' ':'M'}${x},${y}`;
+  });
+  const svg=`
+<svg viewBox="0 0 ${w} ${H}" style="width:${w}px;height:${H}px">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f85149" stop-opacity=".3"/>
+      <stop offset="100%" stop-color="#f85149" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <!-- 网格 -->
+  <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${H-pad}" stroke="#30363d" stroke-width="1"/>
+  <line x1="${pad}" y1="${H-pad}" x2="${W+pad}" y2="${H-pad}" stroke="#30363d" stroke-width="1"/>
+  <!-- 温度填充 -->
+  <path d="${pts} L${pad+(n-1)*(W/(n-1||1))},${H-pad} L${pad},${H-pad} Z" fill="url(#g)"/>
+  <!-- 温度线 -->
+  <path d="${pts}" fill="none" stroke="#f85149" stroke-width="2" stroke-linejoin="round"/>
+  <!-- 温度点 -->
+  ${temps.map((t,i)=>{
+    const x=pad+i*(W/(n-1||1)), y=H-pad-((t-tMin)/range)*(H-2*pad);
+    return `<circle cx="${x}" cy="${y}" r="2.5" fill="#f85149" stroke="#0d1117" stroke-width="1.5"/>`;
+  }).join('')}
+  <!-- 风速虚线 -->
+  <path d="${pts2}" fill="none" stroke="#58a6ff" stroke-width="1.5" stroke-dasharray="4,3" stroke-linejoin="round"/>
+  ${wind.map((v,i)=>{
+    const x=pad+i*(W/(n-1||1)), y=H-pad-((v-wMin)/wR)*(H-2*pad);
+    return `<circle cx="${x}" cy="${y}" r="2" fill="#58a6ff" stroke="#0d1117" stroke-width="1"/>`;
+  }).join('')}
+  <!-- 轴标签 -->
+  <text x="${pad-4}" y="${pad+10}" fill="#8b949e" font-size="9">${Math.round(tMax)}°</text>
+  <text x="${pad-4}" y="${H-pad-2}" fill="#8b949e" font-size="9">${Math.round(tMin)}°</text>
+  <text x="${W+pad-30}" y="${pad+10}" fill="#f85149" font-size="8">🌡温度</text>
+  <text x="${W+pad-30}" y="${pad+22}" fill="#58a6ff" font-size="8">💨风速</text>
+</svg>`;
+  chart.innerHTML=`<div class="chart-wrap">${svg}</div>`;
+}
+
+// ----- 统计卡片 -----
+function showStats(title, rows){
+  if(!rows||!rows.length){result.innerHTML='<div class="gray">无数据</div>';return;}
+  const temps=rows.map(r=>r.t), winds=rows.map(r=>r.w), codes=rows.map(r=>r.c);
+  const maxT=Math.max(...temps), minT=Math.min(...temps);
+  const avgT=temps.reduce((a,b)=>a+b,0)/temps.length;
+  const maxW=Math.max(...winds), avgW=winds.reduce((a,b)=>a+b,0)/winds.length;
+  // 频率统计天气
+  const freq={}; codes.forEach(c=>{freq[c]=(freq[c]||0)+1;});
+  const sorted=Object.entries(freq).sort((a,b)=>b[1]-a[1]);
+  const top3=sorted.slice(0,3).map(([c,n])=>`${wmoEmoji(c)}(${n}天)`).join(' ');
+  // 表格
+  let tbl=`<table class="tbl"><tr><th>日期</th><th>🌡温度</th><th>💨风速</th><th>🌤天气</th><th>🧭风向</th></tr>`;
+  rows.forEach(r=>{
+    const cls=r.t>=35?'hot':r.t<=0?'cold':'';
+    tbl+=`<tr><td>${r.d}</td><td class="${cls}">${r.t}°C</td><td>${r.w}km/h</td><td>${wmoEmoji(r.c)}</td><td>${r.wd}°</td></tr>`;
+  });
+  tbl+='</table>';
+  result.innerHTML=`
+    <div class="secT" style="font-size:11px;color:#8b949e;margin:6px 0">— ${title} 统计结果 —</div>
+    <div class="stats">
+      <div class="stat high"><div class="num">${maxT}°</div><div class="lbl">最高温</div></div>
+      <div class="stat low"><div class="num">${minT}°</div><div class="lbl">最低温</div></div>
+      <div class="stat avg"><div class="num">${avgT.toFixed(1)}°</div><div class="lbl">平均温</div></div>
+      <div class="stat wind"><div class="num">${maxW}</div><div class="lbl">最大风速</div></div>
+      <div class="stat avg"><div class="num">${avgW.toFixed(1)}</div><div class="lbl">平均风速</div></div>
+    </div>
+    <div class="gray" style="font-size:11px;margin:4px 0 8px">📊 常见天气：${top3} · 共 ${rows.length} 条记录</div>
+    ${tbl}`;
+}
+
+// ----- 取历史数据 -----
+async function fetchHistorical(lat,lon,startDate,endDate,label){
+  const url=`https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lon}&start_date=${startDate}&end_date=${endDate}&daily=temperature_2m_max,temperature_2m_min,temperature_2m_mean,wind_speed_10m_max,wind_direction_10m_dominant,weathercode&timezone=auto`;
+  const t0=performance.now();
+  const resp=await fetch(url,{headers:{'Accept':'application/json'}});
+  const data=await resp.json();
+  const elapsed=Math.round(performance.now()-t0);
+  addPkt(label,'GET',url,{'Accept':'application/json'},resp.status,resp.statusText,resp.headers,JSON.stringify(data,null,2),elapsed);
+  if(!data.daily) throw new Error('未获取到数据');
+  const d=data.daily;
+  const rows=[];
+  for(let i=0;i<d.time.length;i++){
+    rows.push({
+      d:d.time[i], t:d.temperature_2m_mean[i]??d.temperature_2m_max[i],
+      w:d.wind_speed_10m_max[i]??0, wd:d.wind_direction_10m_dominant[i]??0,
+      c:d.weathercode[i]??0
+    });
+  }
+  return rows;
+}
+
+// ----- 实时 -----
+async function startReal(){
+  log.innerHTML=''; chart.innerHTML=''; result.innerHTML='';
+  $('loading').style.display='block';
+  try{
+    const loc=await getCity();
+    const t1=performance.now();
+    const url=`https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&current_weather=true&timezone=auto`;
+    const resp=await fetch(url,{headers:{'Accept':'application/json'}});
+    const data=await resp.json();
+    const el=Math.round(performance.now()-t1);
+    addPkt('🌤 实时天气','GET',url,{'Accept':'application/json'},resp.status,resp.statusText,resp.headers,JSON.stringify(data,null,2),el);
+    const w=data.current_weather;
+    result.innerHTML=`
+      <div class="stats">
+        <div class="stat high"><div class="num">${w.temperature}°</div><div class="lbl">当前温度</div></div>
+        <div class="stat wind"><div class="num">${w.windspeed}</div><div class="lbl">风速 km/h</div></div>
+        <div class="stat avg"><div class="num">${w.winddirection}°</div><div class="lbl">风向</div></div>
+        <div class="stat"><div class="num">${wmoEmoji(w.weathercode)}</div><div class="lbl">${loc.name}·${loc.admin}</div></div>
+      </div>`;
+  }catch(e){result.innerHTML=`<div class="pkt"><div class="hd"><span class="status err">❌ ${e.message}</span></div></div>`;}
+  $('loading').style.display='none';
+}
+
+// ----- 周数据 -----
+async function startWeek(){
+  log.innerHTML=''; chart.innerHTML=''; result.innerHTML='';
+  $('loading').style.display='block';
+  try{
+    const loc=await getCity();
+    const e=new Date(); const s=new Date(e); s.setDate(s.getDate()-6);
+    const fmt=d=>d.toISOString().slice(0,10);
+    const rows=await fetchHistorical(loc.lat,loc.lon,fmt(s),fmt(e),'📅 周数据（过去7天）');
+    drawChart(rows,'过去7天温度');
+    showStats('周数据',rows);
+  }catch(e){result.innerHTML=`<div class="pkt"><div class="hd"><span class="status err">❌ ${e.message}</span></div></div>`;}
+  $('loading').style.display='none';
+}
+
+// ----- 周对比 -----
+async function startWeekCmp(){
+  log.innerHTML=''; chart.innerHTML=''; result.innerHTML='';
+  $('loading').style.display='block';
+  try{
+    const loc=await getCity();
+    const e=new Date(); const s=new Date(e); s.setDate(s.getDate()-6);
+    const fmt=d=>d.toISOString().slice(0,10);
+    const rows=await fetchHistorical(loc.lat,loc.lon,fmt(s),fmt(e),'📊 周对比（过去7天详细）');
+    // 周对比：每周几的平均温度
+    const dayMap={}; rows.forEach(r=>{
+      const day=new Date(r.d).getDay(); // 0=Sun
+      if(!dayMap[day])dayMap[day]={t:[],w:[]};
+      dayMap[day].t.push(r.t); dayMap[day].w.push(r.w);
+    });
+    const dayNames=['周日','周一','周二','周三','周四','周五','周六'];
+    // 绘图用实际数据（温度折线图）
+    drawChart(rows,'周对比 · 每日温度变化');
+    // 统计 + 日均对比表
+    let tbl=`<table class="tbl"><tr><th>星期</th><th>🌡平均温</th><th>🔥最高</th><th>❄最低</th><th>💨风速</th><th>🌤常见天气</th></tr>`;
+    for(let d=0;d<7;d++){
+      if(!dayMap[d])continue;
+      const t=dayMap[d].t, w=dayMap[d].w;
+      const avg=t.reduce((a,b)=>a+b,0)/t.length;
+      const mx=Math.max(...t), mn=Math.min(...t);
+      const aw=w.reduce((a,b)=>a+b,0)/w.length;
+      tbl+=`<tr><td>${dayNames[d]}</td><td>${avg.toFixed(1)}°</td><td class="hot">${mx}°</td><td class="cold">${mn}°</td><td>${aw.toFixed(1)}</td><td>—</td></tr>`;
+    }
+    tbl+='</table>';
+    // 总统计
+    const temps=rows.map(r=>r.t);
+    result.innerHTML=`
+      <div class="secT" style="font-size:11px;color:#8b949e;margin:6px 0">— 周对比统计 —</div>
+      <div class="stats">
+        <div class="stat high"><div class="num">${Math.max(...temps)}°</div><div class="lbl">本周最高</div></div>
+        <div class="stat low"><div class="num">${Math.min(...temps)}°</div><div class="lbl">本周最低</div></div>
+        <div class="stat avg"><div class="num">${(temps.reduce((a,b)=>a+b,0)/temps.length).toFixed(1)}°</div><div class="lbl">本周平均</div></div>
+      </div>
+      <div class="gray" style="font-size:11px;margin:4px 0 6px">📅 按星期日均对比</div>
+      ${tbl}`;
+  }catch(e){result.innerHTML=`<div class="pkt"><div class="hd"><span class="status err">❌ ${e.message}</span></div></div>`;}
+  $('loading').style.display='none';
+}
+
+// ----- 月数据 -----
+async function startMonth(){
+  log.innerHTML=''; chart.innerHTML=''; result.innerHTML='';
+  $('loading').style.display='block';
+  try{
+    const loc=await getCity();
+    const e=new Date(); const s=new Date(e); s.setDate(s.getDate()-29);
+    const fmt=d=>d.toISOString().slice(0,10);
+    const rows=await fetchHistorical(loc.lat,loc.lon,fmt(s),fmt(e),'📆 月数据（过去30天）');
+    drawChart(rows,'过去30天温度变化');
+    showStats('月数据',rows);
+  }catch(e){result.innerHTML=`<div class="pkt"><div class="hd"><span class="status err">❌ ${e.message}</span></div></div>`;}
+  $('loading').style.display='none';
+}
+
+// ----- 月对比 -----
+async function startMonthCmp(){
+  log.innerHTML=''; chart.innerHTML=''; result.innerHTML='';
+  $('loading').style.display='block';
+  try{
+    const loc=await getCity();
+    const e=new Date(); const s=new Date(e); s.setDate(s.getDate()-29);
+    const fmt=d=>d.toISOString().slice(0,10);
+    const rows=await fetchHistorical(loc.lat,loc.lon,fmt(s),fmt(e),'📈 月对比（过去30天详细）');
+    drawChart(rows,'月对比 · 温度变化');
+    const temps=rows.map(r=>r.t), winds=rows.map(r=>r.w);
+    // 按旬分组
+    const ten=[{name:'上旬(1-10日)',t:[],w:[]},{name:'中旬(11-20日)',t:[],w:[]},{name:'下旬(21-30日)',t:[],w:[]}];
+    rows.forEach((r,i)=>{
+      const idx=Math.floor(i/10);
+      if(idx<3){ten[idx].t.push(r.t);ten[idx].w.push(r.w);}
+    });
+    let tbl=`<table class="tbl"><tr><th>旬</th><th>🌡平均温</th><th>🔥最高</th><th>❄最低</th><th>💨均风速</th></tr>`;
+    ten.forEach(g=>{
+      if(!g.t.length)return;
+      const avg=g.t.reduce((a,b)=>a+b,0)/g.t.length;
+      const mx=Math.max(...g.t), mn=Math.min(...g.t);
+      const aw=g.w.reduce((a,b)=>a+b,0)/g.w.length;
+      tbl+=`<tr><td>${g.name}</td><td>${avg.toFixed(1)}°</td><td class="hot">${mx}°</td><td class="cold">${mn}°</td><td>${aw.toFixed(1)}</td></tr>`;
+    });
+    tbl+='</table>';
+    result.innerHTML=`
+      <div class="secT" style="font-size:11px;color:#8b949e;margin:6px 0">— 月对比统计 —</div>
+      <div class="stats">
+        <div class="stat high"><div class="num">${Math.max(...temps)}°</div><div class="lbl">月最高</div></div>
+        <div class="stat low"><div class="num">${Math.min(...temps)}°</div><div class="lbl">月最低</div></div>
+        <div class="stat avg"><div class="num">${(temps.reduce((a,b)=>a+b,0)/temps.length).toFixed(1)}°</div><div class="lbl">月平均</div></div>
+        <div class="stat wind"><div class="num">${Math.max(...winds)}</div><div class="lbl">最大风速</div></div>
+      </div>
+      <div class="gray" style="font-size:11px;margin:4px 0 6px">📅 按旬对比</div>
+      ${tbl}`;
+  }catch(e){result.innerHTML=`<div class="pkt"><div class="hd"><span class="status err">❌ ${e.message}</span></div></div>`;}
+  $('loading').style.display='none';
+}
+</script>
+</body>
+</html>
