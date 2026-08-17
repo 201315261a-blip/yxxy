@@ -36,6 +36,20 @@ h1{color:#776e65;font-size:38px;font-weight:bold}
 button{background:#8f7a66;color:#f9f6f2;border:none;border-radius:6px;padding:12px 28px;font-size:18px;cursor:pointer;touch-action:manipulation}
 button:active{transform:scale(.95)}
 .hint{color:#776e65;font-size:14px;text-align:center;margin-top:12px}
+/* ===== 桌面端适配 ===== */
+@media (min-width:700px){
+#wrap{max-width:560px;padding:24px}
+h1{font-size:46px}
+.scoreBox{padding:8px 20px;min-width:96px}
+.scoreBox .val{font-size:26px}
+#board{border-radius:12px;padding:14px;gap:0}
+.grid{gap:14px}
+.cell{border-radius:8px;font-size:46px}
+.cell[data-v="128"],.cell[data-v="256"],.cell[data-v="512"]{font-size:38px}
+.cell[data-v="1024"],.cell[data-v="2048"]{font-size:30px}
+button{padding:14px 36px;font-size:20px}
+.hint{font-size:15px;margin-top:16px}
+}
 </style>
 </head>
 <body>
