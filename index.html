@@ -19,6 +19,18 @@ h1{font-size:24px;margin-bottom:8px;background:linear-gradient(90deg,#38bdf8,#a7
 .card p{font-size:12px;color:#94a3b8;line-height:1.6}
 .card .tag{display:inline-block;margin-top:10px;font-size:11px;color:#38bdf8;border:1px solid rgba(56,189,248,.4);padding:2px 8px;border-radius:99px}
 footer{text-align:center;margin-top:36px;font-size:12px;color:#64748b;line-height:1.8}
+/* ===== 桌面端适配 ===== */
+@media (min-width:900px){
+body{padding:48px 24px 64px}
+.wrap{max-width:1120px}
+h1{font-size:32px}
+.sub{font-size:14px}
+.grid{grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:20px}
+.card{padding:22px;border-radius:16px}
+.card h3{font-size:17px;margin-bottom:8px}
+.card p{font-size:13px}
+.card .tag{font-size:12px;padding:3px 10px}
+}
 footer a{color:#38bdf8;text-decoration:none}
 </style>
 </head>
@@ -38,7 +50,6 @@ footer a{color:#38bdf8;text-decoration:none}
 <a class="card" href="电商市场竞争情报系统.html"><h3>电商市场竞争情报系统</h3><p>竞品监控与市场情报分析。</p><span class="tag">工具</span></a>
 <a class="card" href="天气抓包工具.html"><h3>天气抓包工具</h3><p>天气数据抓取与可视化。</p><span class="tag">工具</span></a>
 <a class="card" href="multi_tool.html"><h3>multi_tool</h3><p>多功能聚合小工具。</p><span class="tag">工具</span></a>
-<a class="card" href="HTML能力全景对比.html"><h3>HTML能力全景对比</h3><p>前端特性演示与能力对比。</p><span class="tag">演示</span></a>
 <a class="card" href="2048.html"><h3>2048</h3><p>经典数字合成游戏复刻。</p><span class="tag">游戏</span></a>
 </div>
 <footer>
