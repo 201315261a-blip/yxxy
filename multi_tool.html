@@ -112,6 +112,26 @@
   .calc-grid button.eq { background: #4caf50; color: #fff; }
   .calc-grid button.clr { background: #e53935; color: #fff; }
   .todo-list { list-style: none; }
+  /* ===== 桌面端适配 ===== */
+  @media (min-width:900px){
+    body{padding-bottom:44px}
+    .header{padding:36px 16px 22px}
+    .header h1{font-size:26px;letter-spacing:3px}
+    .header p{font-size:14px}
+    .tabs{justify-content:center;gap:12px;padding:12px}
+    .tab{padding:10px 24px;font-size:15px}
+    .panel{max-width:1040px;margin:0 auto;padding:24px}
+    .panel.active{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+    .card{margin-bottom:0;padding:24px;border-radius:16px}
+    .card h2{font-size:18px;margin-bottom:14px}
+    input,select,button{font-size:16px;padding:11px 14px}
+    #clockTime{font-size:58px}
+    .calc-display{padding:18px}
+    #calcResult{font-size:36px}
+    .calc-grid{gap:10px}
+    .calc-grid button{padding:17px 0;font-size:20px}
+    .todo-item{padding:14px;font-size:16px}
+  }
   .todo-item {
     display: flex;
     align-items: center;
